@@ -1,0 +1,5 @@
+{
+  "query_id": "q123",
+  "natural_language_query": "查找所有销售额超过1000元的产品,并按销售额降序排列",
+  "database_schema": "产品表(products)结构: id, name, price, sales_amount, category\n订单表(orders)结构: id, product_id, customer_id, order_date, quantity"
+}
