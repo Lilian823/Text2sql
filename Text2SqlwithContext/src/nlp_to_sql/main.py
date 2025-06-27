@@ -1,6 +1,10 @@
 from src.nlp_to_sql.config import INPUT_QUERY_PATH, OUTPUT_SQL_PATH
 from src.nlp_to_sql.json_handler import read_json, write_json
 from src.nlp_to_sql.sql_generator import generate_sql_from_nl
+from src.nlp_to_sql.context_manager import ContextualConversation
+
+context_manager = ContextualConversation()
+session_id = "user_session"  # 可根据实际需求动态生成
 
 # def process_query():
 #     """
@@ -39,21 +43,29 @@ def process_query_interactive():
     nl_query = input()
     print("请输入数据库结构描述：")
     db_schema = input()
-    query_id = "q_user"  # 或自动生成
+    query_id = "q_user"
+
+    # 1. 上下文增强
+    enhanced_query = context_manager.enhance_query(session_id, nl_query)
 
     query_data = {
         "query_id": query_id,
-        "natural_language_query": nl_query,
+        "natural_language_query": enhanced_query,  # 用增强后的查询
         "database_schema": db_schema
     }
 
+    # 2. 生成SQL
     result = generate_sql_from_nl(query_data)
     print("生成结果：")
     if result.get("status") == "success":
         print("生成的SQL:", result.get("generated_sql"))
     else:
         print("生成SQL失败:", result.get("error"))
-    # 保存结果为JSON
+
+    # 3. 记录历史
+    context_manager.add_history(session_id, nl_query, result.get("generated_sql", ""), result)
+
+    # 4. 保存结果
     if write_json(result, OUTPUT_SQL_PATH):
         print(f"结果已保存到: {OUTPUT_SQL_PATH}")
     else:
