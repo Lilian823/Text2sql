@@ -1,11 +1,11 @@
 {
   "query_id": "q_user",
-  "natural_language_query": "\n        基于以下对话上下文:\n        这是对话的开始，没有历史上下文。\n        \n        用户的新问题是:\n        请帮我查询张三的性别\n        \n        请综合考虑上下文信息生成SQL。\n        ",
-  "timestamp": "2025-06-27T08:26:39.110170Z",
-  "generated_sql": "SELECT gender FROM patient_records WHERE patient_name = '张三';",
+  "natural_language_query": "\n        基于以下对话上下文:\n        最近的对话历史:\n  [1] 用户: 请告诉我我爸爸的血糖\n      SQL: \n  [2] 用户: 我不测血糖\n      SQL: \n  [3] 用户: aaa \n      SQL: \n        \n        用户的新问题是:\n        请告诉我2023年血糖低于正常值的成年男性\n        \n        请综合考虑上下文信息生成SQL。\n        ",
+  "timestamp": "2025-06-27T08:59:31.349553Z",
+  "generated_sql": "SELECT patient_id, patient_name, age, checkup_date, fasting_glucose \nFROM database_schema \nWHERE gender = '男' \nAND age >= 18 \nAND YEAR(checkup_date) = 2023 \nAND fasting_glucose < 3.9;",
   "status": "success",
   "metadata": {
     "model": "deepseek-chat",
-    "processing_time_ms": 6548
+    "processing_time_ms": 6249
   }
 }
