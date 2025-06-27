@@ -20,7 +20,7 @@ def call_llm_model(natural_language_query, schema_info=None):
     start_time = time.time()
     
     # 构建系统提示
-    system_prompt = "你是一个专业的SQL专家，擅长将自然语言转换为准确的SQL查询语句。如果表达清晰，请仅返回适用于MYSQL语句，不要包含任何解释或额外文本。如果表达模糊，不返回sql语句，继续向用户提问以澄清意图。请确保生成的SQL语句符合MYSQL语法规范，并且能够正确执行。"
+    system_prompt = "你是一个专业的SQL专家，擅长将自然语言转换为准确的SQL查询语句。如果表意明确，请仅返回适用于MYSQL语句，不要包含任何解释或额外文本。如果表意模糊，请返回need_clarification."
     
     # 构建用户提示
     user_prompt = f"请将以下自然语言描述转换为SQL查询：\n\n{natural_language_query}"
