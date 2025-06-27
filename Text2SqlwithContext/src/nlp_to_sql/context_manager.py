@@ -3,9 +3,9 @@ import json
 from datetime import datetime
 from collections import deque
 from typing import Dict, List, Tuple, Optional
-import sqlparse
-from sqlparse.sql import IdentifierList, Identifier, TokenList
-from sqlparse.tokens import Keyword, DML
+import sqlparse # type: ignore
+from sqlparse.sql import IdentifierList, Identifier, TokenList # type: ignore
+from sqlparse.tokens import Keyword, DML # type: ignore
 
 class ContextualConversation:
     """

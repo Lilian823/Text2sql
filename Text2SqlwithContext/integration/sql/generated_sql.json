@@ -1,11 +1,11 @@
 {
-  "query_id": "q_user",
-  "natural_language_query": "\n        基于以下对话上下文:\n        最近的对话历史:\n  [1] 用户: 请告诉我我爸爸的血糖\n      SQL: \n  [2] 用户: 我不测血糖\n      SQL: \n  [3] 用户: aaa \n      SQL: \n        \n        用户的新问题是:\n        请告诉我2023年血糖低于正常值的成年男性\n        \n        请综合考虑上下文信息生成SQL。\n        ",
-  "timestamp": "2025-06-27T08:59:31.349553Z",
-  "generated_sql": "SELECT patient_id, patient_name, age, checkup_date, fasting_glucose \nFROM database_schema \nWHERE gender = '男' \nAND age >= 18 \nAND YEAR(checkup_date) = 2023 \nAND fasting_glucose < 3.9;",
+  "query_id": "q_user_followup",
+  "natural_language_query": "\n        基于以下对话上下文:\n        当前对话涉及的实体: 年龄:{'count': 2, 'columns': []}\n最近的对话历史:\n  [1] 用户: 请给我成年男性血糖偏高的名单\n      SQL: SELECT patient_id, patient_name, age, fasting_glucose\nFROM table_name\nWHERE gender = '男' \nAND age >= 18 \nAND fasting_glucose > 6.1;\n  [2] 用户: 我要这些人的名字和年龄数据\n      SQL: SELECT patient_name, age FROM table_name;\n  [3] 用户: 加上年龄\n      SQL: SELECT patient_id, patient_name, age, fasting_glucose\nFROM table_name\nWHERE gender = '男' \nAND age >= 18 \nAND fasting_glucose > 6.1;\n  [4] 用户: 我要成年男性的血糖偏高的名单\n      SQL: SELECT patient_id, patient_name, age, fasting_glucose\nFROM table_name\nWHERE gender = '男' \nAND age >= 18 \nAND fasting_glucose > 6.1;\n        \n        用户的新问题是:\n        exit\n        \n        请综合考虑上下文信息生成SQL。\n        ",
+  "timestamp": "2025-06-27T09:53:24.917491Z",
+  "generated_sql": "SELECT patient_id, patient_name, age, fasting_glucose FROM table_name WHERE gender = '男' AND age >= 18 AND fasting_glucose > 6.1",
   "status": "success",
   "metadata": {
     "model": "deepseek-chat",
-    "processing_time_ms": 6249
+    "processing_time_ms": 3401
   }
 }
