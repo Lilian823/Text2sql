@@ -1,7 +1,0 @@
-echo ".env
-venv/
-__pycache__/
-*.pyc
-integration/sql/*.json
-integration/results/*.json
-*.log" > .gitignore
