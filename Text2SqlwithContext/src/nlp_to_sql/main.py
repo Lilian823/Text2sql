@@ -44,7 +44,7 @@ def process_query_interactive():
     if not nl_query.strip():
         print("查询内容不能为空，请输入有效的自然语言查询。")
         return
-    db_schema_path = "db_schema.json"
+    db_schema_path = "integration/input/db_schema.json"
     try:
         with open(db_schema_path, "r", encoding="utf-8") as f:
             db_schema = f.read()

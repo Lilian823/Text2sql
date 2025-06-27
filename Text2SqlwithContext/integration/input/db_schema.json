@@ -1,0 +1,29 @@
+{
+    "database_schema": [
+        { "name": "id", "type": "INT", "extra": "AUTO_INCREMENT PRIMARY KEY" },
+        { "name": "patient_id", "type": "VARCHAR(20)", "extra": "NOT NULL" },
+        { "name": "patient_name", "type": "VARCHAR(50)", "extra": "NOT NULL" },
+        { "name": "gender", "type": "ENUM", "values": ["男", "女"], "extra": "NOT NULL" },
+        { "name": "age", "type": "INT", "extra": "NOT NULL" },
+        { "name": "checkup_date", "type": "DATE", "extra": "NOT NULL" },
+        { "name": "height", "type": "DECIMAL(5,2)", "comment": "身高(cm)" },
+        { "name": "weight", "type": "DECIMAL(5,2)", "comment": "体重(kg)" },
+        { "name": "bmi", "type": "DECIMAL(5,2)", "comment": "体质指数" },
+        { "name": "blood_pressure", "type": "VARCHAR(10)", "comment": "血压(mmHg)" },
+        { "name": "fasting_glucose", "type": "DECIMAL(5,2)", "comment": "空腹血糖(mmol/L)" },
+        { "name": "total_cholesterol", "type": "DECIMAL(5,2)", "comment": "总胆固醇(mmol/L)" },
+        { "name": "triglycerides", "type": "DECIMAL(5,2)", "comment": "甘油三酯(mmol/L)" },
+        { "name": "hdl", "type": "DECIMAL(5,2)", "comment": "高密度脂蛋白(mmol/L)" },
+        { "name": "ldl", "type": "DECIMAL(5,2)", "comment": "低密度脂蛋白(mmol/L)" },
+        { "name": "alt", "type": "INT", "comment": "谷丙转氨酶(U/L)" },
+        { "name": "ast", "type": "INT", "comment": "谷草转氨酶(U/L)" },
+        { "name": "wbc", "type": "DECIMAL(5,2)", "comment": "白细胞计数(×10^9/L)" },
+        { "name": "rbc", "type": "DECIMAL(5,2)", "comment": "红细胞计数(×10^12/L)" },
+        { "name": "hemoglobin", "type": "DECIMAL(5,2)", "comment": "血红蛋白(g/L)" },
+        { "name": "urine_protein", "type": "ENUM", "values": ["阴性", "+-", "+", "++", "+++", "++++"], "comment": "尿蛋白" },
+        { "name": "ecg_result", "type": "VARCHAR(100)", "comment": "心电图结果" },
+        { "name": "ultrasound_result", "type": "VARCHAR(200)", "comment": "超声检查结果" },
+        { "name": "doctor_advice", "type": "TEXT", "comment": "医生建议" },
+        { "name": "created_at", "type": "TIMESTAMP", "extra": "DEFAULT CURRENT_TIMESTAMP" }
+    ]
+}
