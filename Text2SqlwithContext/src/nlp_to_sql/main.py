@@ -41,8 +41,19 @@ session_id = "user_session"  # 可根据实际需求动态生成
 def process_query_interactive():
     print("请输入自然语言查询：")
     nl_query = input()
-    print("请输入数据库结构描述：")
-    db_schema = input()
+    if not nl_query.strip():
+        print("查询内容不能为空，请输入有效的自然语言查询。")
+        return
+    db_schema_path = "db_schema.json"
+    try:
+        with open(db_schema_path, "r", encoding="utf-8") as f:
+            db_schema = f.read()
+        if not db_schema.strip():
+            print("数据库结构文件为空，请检查文件内容。")
+            return
+    except Exception as e:
+        print(f"读取数据库结构文件失败: {e}")
+        return
     query_id = "q_user"
 
     # 1. 上下文增强
