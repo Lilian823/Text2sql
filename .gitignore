@@ -1,1 +1,13 @@
 t2s_t5_small.py
+# 临时文件
+*.tmp
+*.pyc
+__pycache__/
+
+# 日志与缓存
+*.log
+cache/
+
+# 输出文件
+output/
+results/
