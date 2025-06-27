@@ -1,251 +1,317 @@
 import json
 import logging
-import sqlite3
 import pandas as pd
 from sklearn.metrics import precision_score, recall_score, f1_score
-from transformers import pipeline, AutoModelForSeq2SeqLM, AutoTokenizer
 
-class Text2SQLSystem:
-    def __init__(self, db_path, model_name="tscholak/cxmefzzi"):
+class ErrorHandler:
+    def __init__(self, nlu_sql_module, db_connector_module):
         """
-        初始化智能问答系统
-        :param db_path: 数据库文件路径
-        :param model_name: Text2SQL模型名称
+        初始化错误处理中心
+        :param nlu_sql_module: 代芷涵的自然语言处理与text2SQL模块实例
+        :param db_connector_module: 熊益婕的数据库交互与结果解析模块实例
         """
-        self.db_path = db_path
-        self.model_name = model_name
+        self.nlu_sql = nlu_sql_module
+        self.db_connector = db_connector_module
         self.logger = self.setup_logger()
         self.monitor = SystemMonitor()
-        self.dialog_context = []
         
-        # 初始化Text2SQL模型
-        try:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-            self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-            self.text2sql_pipeline = pipeline(
-                "text2text-generation",
-                model=self.model,
-                tokenizer=self.tokenizer
-            )
-            self.logger.info(f"成功加载Text2SQL模型: {model_name}")
-        except Exception as e:
-            self.logger.error(f"模型加载失败: {str(e)}")
-            raise
-
     def setup_logger(self):
-        """配置日志系统"""
+        """配置统一的日志系统"""
         logger = logging.getLogger('Text2SQL_System')
         logger.setLevel(logging.INFO)
         
-        # 文件日志
+        # 统一的日志格式
+        log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        
+        # 文件日志（记录错误）
         file_handler = logging.FileHandler('system_errors.log')
         file_handler.setLevel(logging.ERROR)
-        file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        file_handler.setFormatter(file_formatter)
+        file_handler.setFormatter(log_format)
+        
+        # 性能日志
+        perf_handler = logging.FileHandler('performance.log')
+        perf_handler.setLevel(logging.INFO)
+        perf_handler.setFormatter(log_format)
         
         # 控制台日志
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
-        console_formatter = logging.Formatter('%(levelname)s - %(message)s')
-        console_handler.setFormatter(console_formatter)
+        console_handler.setFormatter(log_format)
         
         logger.addHandler(file_handler)
+        logger.addHandler(perf_handler)
         logger.addHandler(console_handler)
         return logger
 
-    def natural_language_understanding(self, question):
-        """自然语言理解模块"""
+    def process_user_query(self, question, context=None):
+        """
+        处理用户查询的完整流程（集成两个队友的模块）
+        返回格式: (success, result, error_details)
+        """
         try:
-            # 实际应用中可集成NER、意图识别等模型
-            # 这里简化为返回结构化数据
-            return {
-                "question": question,
-                "context": self.dialog_context
-            }
-        except Exception as e:
-            self.logger.error(f"自然语言理解失败: {str(e)}")
-            raise
-
-    def generate_sql(self, nlu_result):
-        """Text2SQL转换"""
-        try:
-            # 结合上下文生成SQL
-            context = " ".join(self.dialog_context[-3:])  # 使用最近3轮对话作为上下文
-            full_query = f"{context} {nlu_result['question']}" if context else nlu_result['question']
+            # 记录开始时间（性能监控）
+            start_time = pd.Timestamp.now()
             
-            # 使用模型生成SQL
-            result = self.text2sql_pipeline(
-                full_query,
-                max_length=256,
-                num_return_sequences=1
-            )
-            generated_sql = result[0]['generated_text'].strip()
+            # 调用代芷涵的模块
+            nlu_result = self.nlu_sql.natural_language_understanding(question, context)
+            sql_query = self.nlu_sql.generate_sql(nlu_result)
             
-            self.logger.info(f"生成SQL: {generated_sql}")
-            self.monitor.log_event("sql_generation", metadata={"query": nlu_result['question'], "sql": generated_sql})
-            return generated_sql
-        except Exception as e:
-            self.logger.error(f"SQL生成失败: {str(e)}")
-            self.monitor.log_event("sql_generation_error", metadata={"error": str(e)})
-            raise
-
-    def execute_sql(self, sql):
-        """执行SQL查询"""
-        conn = None
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            cursor.execute(sql)
+            # 调用熊益婕的模块
+            db_result = self.db_connector.execute_sql(sql_query)
+            formatted_result = self.db_connector.format_results(db_result)
             
-            # 处理不同操作类型
-            if sql.strip().lower().startswith('select'):
-                columns = [desc[0] for desc in cursor.description]
-                results = cursor.fetchall()
-                return {
-                    "type": "query",
-                    "columns": columns,
-                    "data": results
-                }
-            else:
-                conn.commit()
-                return {
-                    "type": "operation",
-                    "affected_rows": cursor.rowcount
-                }
-        except sqlite3.Error as e:
-            self.logger.error(f"SQL执行错误: {str(e)} | SQL: {sql}")
-            self.monitor.log_event("sql_execution_error", metadata={
-                "error": str(e),
-                "sql": sql
-            })
-            return {"error": f"数据库错误: {str(e)}"}
-        finally:
-            if conn:
-                conn.close()
-
-    def format_results(self, result):
-        """结果格式化"""
-        try:
-            if "error" in result:
-                return result["error"]
+            # 记录处理时间
+            processing_time = (pd.Timestamp.now() - start_time).total_seconds()
             
-            if result["type"] == "query":
-                df = pd.DataFrame(result["data"], columns=result["columns"])
-                return df.to_markdown(index=False)
-            else:
-                return f"操作成功，影响行数: {result['affected_rows']}"
-        except Exception as e:
-            self.logger.error(f"结果格式化失败: {str(e)}")
-            return "结果处理错误"
-
-    def ask_question(self, question):
-        """处理用户问题"""
-        self.dialog_context.append(question)  # 添加上下文
-        
-        try:
-            # 处理流程
-            nlu_result = self.natural_language_understanding(question)
-            sql = self.generate_sql(nlu_result)
-            db_result = self.execute_sql(sql)
-            formatted_result = self.format_results(db_result)
-            
-            # 记录成功处理
+            # 记录成功日志
             self.monitor.log_event("query_success", metadata={
                 "question": question,
-                "sql": sql
+                "processing_time": processing_time
             })
+            self.logger.info(f"查询处理成功: {question[:30]}... | 耗时: {processing_time:.2f}s")
             
-            return formatted_result
+            return True, formatted_result, None
+        
+        except NLUException as e:
+            error_details = {
+                "type": "NLU_ERROR",
+                "message": str(e),
+                "module": "natural_language_understanding"
+            }
+            self.logger.error(f"自然语言理解错误: {str(e)}")
+            self.monitor.log_event("nlu_error", metadata=error_details)
+            return False, "抱歉，我不太理解您的问题。请尝试换一种方式提问。", error_details
+            
+        except SQLGenerationException as e:
+            error_details = {
+                "type": "SQL_GENERATION_ERROR",
+                "message": str(e),
+                "input_question": question,
+                "context": context
+            }
+            self.logger.error(f"SQL生成错误: {str(e)} | 问题: {question}")
+            self.monitor.log_event("sql_generation_error", metadata=error_details)
+            return False, "抱歉，我无法将这个请求转换为数据库查询。", error_details
+            
+        except DBConnectionException as e:
+            error_details = {
+                "type": "DB_CONNECTION_ERROR",
+                "message": str(e),
+                "sql": sql_query if 'sql_query' in locals() else "N/A"
+            }
+            self.logger.error(f"数据库连接错误: {str(e)}")
+            self.monitor.log_event("db_connection_error", metadata=error_details)
+            return False, "数据库连接出现问题，请稍后再试。", error_details
+            
+        except SQLExecutionException as e:
+            error_details = {
+                "type": "SQL_EXECUTION_ERROR",
+                "message": str(e),
+                "sql": sql_query,
+                "db_type": self.db_connector.db_type
+            }
+            self.logger.error(f"SQL执行错误: {str(e)} | SQL: {sql_query}")
+            self.monitor.log_event("sql_execution_error", metadata=error_details)
+            return False, "数据库查询执行失败，请检查您的请求。", error_details
+            
+        except ResultFormattingException as e:
+            error_details = {
+                "type": "RESULT_FORMATTING_ERROR",
+                "message": str(e),
+                "raw_result": str(db_result)[:200] + "..." if 'db_result' in locals() else "N/A"
+            }
+            self.logger.error(f"结果格式化错误: {str(e)}")
+            self.monitor.log_event("result_formatting_error", metadata=error_details)
+            # 尝试返回原始数据
+            try:
+                raw_data = f"原始查询结果: {str(db_result)[:500]}..." if 'db_result' in locals() else "无可用数据"
+                return False, f"结果处理遇到问题，但这是原始数据:\n{raw_data}", error_details
+            except:
+                return False, "结果处理遇到问题，且无法获取原始数据。", error_details
+            
         except Exception as e:
-            error_msg = f"系统处理错误: {str(e)}"
-            self.logger.error(error_msg)
-            self.monitor.log_event("system_error", metadata={
-                "error": str(e),
-                "question": question
-            })
-            return error_msg
+            error_details = {
+                "type": "UNEXPECTED_ERROR",
+                "message": str(e)
+            }
+            self.logger.critical(f"未处理的系统错误: {str(e)}")
+            self.monitor.log_event("system_failure", metadata=error_details)
+            return False, "系统遇到意外错误，请联系管理员。", error_details
 
     def test_system(self, test_file="test_dataset.json"):
-        """系统测试与评估"""
+        """端到端系统测试与评估"""
         try:
             with open(test_file, 'r') as f:
                 test_data = json.load(f)
             
-            y_true = []
-            y_pred = []
             results = []
+            metrics = {
+                "nlu_success": 0,
+                "sql_generation_success": 0,
+                "sql_execution_success": 0,
+                "result_formatting_success": 0,
+                "end_to_end_success": 0
+            }
             
             for i, test_case in enumerate(test_data):
-                question = test_case["question"]
-                expected_sql = test_case["sql"]
+                test_result = {
+                    "id": i+1,
+                    "question": test_case["question"],
+                    "expected_sql": test_case["sql"],
+                    "generated_sql": "N/A",
+                    "execution_result": "N/A",
+                    "formatted_result": "N/A",
+                    "errors": []
+                }
                 
                 try:
-                    nlu_result = self.natural_language_understanding(question)
-                    generated_sql = self.generate_sql(nlu_result)
+                    # 测试自然语言理解
+                    nlu_result = self.nlu_sql.natural_language_understanding(
+                        test_case["question"], 
+                        test_case.get("context")
+                    )
+                    metrics["nlu_success"] += 1
                     
-                    # 执行生成的SQL和预期SQL
-                    gen_result = self.execute_sql(generated_sql)
-                    exp_result = self.execute_sql(expected_sql)
+                    # 测试SQL生成
+                    generated_sql = self.nlu_sql.generate_sql(nlu_result)
+                    test_result["generated_sql"] = generated_sql
+                    metrics["sql_generation_success"] += 1
                     
-                    # 对比结果
-                    is_correct = str(gen_result) == str(exp_result)
-                    y_true.append(1)
-                    y_pred.append(1 if is_correct else 0)
+                    # 测试SQL执行
+                    db_result = self.db_connector.execute_sql(generated_sql)
+                    test_result["execution_result"] = str(db_result)[:200] + "..." if db_result else "None"
+                    metrics["sql_execution_success"] += 1
                     
-                    results.append({
-                        "id": i+1,
-                        "question": question,
-                        "generated_sql": generated_sql,
-                        "expected_sql": expected_sql,
-                        "is_correct": is_correct,
-                        "generated_result": str(gen_result)[:100] + "..." if gen_result else "",
-                        "expected_result": str(exp_result)[:100] + "..." if exp_result else ""
-                    })
+                    # 测试结果格式化
+                    formatted_result = self.db_connector.format_results(db_result)
+                    test_result["formatted_result"] = str(formatted_result)[:200] + "..."
+                    metrics["result_formatting_success"] += 1
                     
-                    self.logger.info(f"测试用例 {i+1}/{len(test_data)}: {'通过' if is_correct else '失败'}")
+                    # 端到端正确性检查
+                    expected_result = self.db_connector.execute_sql(test_case["sql"])
+                    is_correct = self._compare_results(db_result, expected_result)
+                    
+                    if is_correct:
+                        metrics["end_to_end_success"] += 1
+                        test_result["is_correct"] = True
+                    else:
+                        test_result["is_correct"] = False
+                        test_result["errors"].append("结果不匹配")
+                    
                 except Exception as e:
-                    self.logger.error(f"测试用例 {i+1} 执行失败: {str(e)}")
-                    y_true.append(1)
-                    y_pred.append(0)
+                    error_type = type(e).__name__
+                    test_result["errors"].append(f"{error_type}: {str(e)}")
+                    self.logger.error(f"测试用例 {i+1} 失败: {error_type} - {str(e)}")
+                
+                results.append(test_result)
             
-            # 计算指标
-            precision = precision_score(y_true, y_pred, zero_division=0)
-            recall = recall_score(y_true, y_pred, zero_division=0)
-            f1 = f1_score(y_true, y_pred, zero_division=0)
-            accuracy = sum(y_pred) / len(y_pred)
+            # 计算成功率
+            total = len(test_data)
+            metrics["nlu_accuracy"] = metrics["nlu_success"] / total
+            metrics["sql_gen_accuracy"] = metrics["sql_generation_success"] / total
+            metrics["sql_exec_accuracy"] = metrics["sql_execution_success"] / total
+            metrics["formatting_accuracy"] = metrics["result_formatting_success"] / total
+            metrics["end_to_end_accuracy"] = metrics["end_to_end_success"] / total
             
             # 生成报告
             report = {
                 "test_cases": results,
-                "metrics": {
-                    "precision": precision,
-                    "recall": recall,
-                    "f1_score": f1,
-                    "accuracy": accuracy,
-                    "total_cases": len(test_data),
-                    "passed_cases": sum(y_pred)
+                "module_metrics": metrics,
+                "summary": {
+                    "total_cases": total,
+                    "end_to_end_success_rate": metrics["end_to_end_accuracy"]
                 }
             }
             
             # 保存报告
-            with open('test_report.json', 'w') as f:
+            with open('system_test_report.json', 'w') as f:
                 json.dump(report, f, indent=2)
             
-            # 监控记录
-            self.monitor.log_event("system_test", metadata={
-                "total_cases": len(test_data),
-                "accuracy": accuracy
+            # 记录测试结果
+            self.monitor.log_event("system_test_completed", metadata={
+                "total_cases": total,
+                "end_to_end_accuracy": metrics["end_to_end_accuracy"]
             })
             
             return report
+            
         except Exception as e:
             self.logger.error(f"系统测试失败: {str(e)}")
             return {"error": f"测试失败: {str(e)}"}
 
+    def _compare_results(self, result1, result2):
+        """比较两个数据库结果是否相等（考虑不同模块的输出格式）"""
+        try:
+            # 处理不同类型的结果
+            if isinstance(result1, pd.DataFrame) and isinstance(result2, pd.DataFrame):
+                return result1.equals(result2)
+                
+            elif isinstance(result1, dict) and isinstance(result2, dict):
+                # 处理操作结果（如INSERT/UPDATE/DELETE）
+                if "affected_rows" in result1 and "affected_rows" in result2:
+                    return result1["affected_rows"] == result2["affected_rows"]
+                return result1 == result2
+                
+            elif isinstance(result1, str) and isinstance(result2, str):
+                # 处理格式化后的文本结果
+                return result1.strip() == result2.strip()
+                
+            return str(result1) == str(result2)
+        except:
+            return False
+
+    def get_performance_report(self):
+        """生成性能报告"""
+        events = self.monitor.get_recent_events(100)
+        error_events = [e for e in events if "error" in e["event_type"] or "failure" in e["event_type"]]
+        
+        # 按模块分类错误
+        module_errors = {
+            "NLU": 0,
+            "SQL_Generation": 0,
+            "DB_Connection": 0,
+            "SQL_Execution": 0,
+            "Result_Formatting": 0,
+            "Other": 0
+        }
+        
+        for event in error_events:
+            if "nlu_error" in event["event_type"]:
+                module_errors["NLU"] += 1
+            elif "sql_generation_error" in event["event_type"]:
+                module_errors["SQL_Generation"] += 1
+            elif "db_connection_error" in event["event_type"]:
+                module_errors["DB_Connection"] += 1
+            elif "sql_execution_error" in event["event_type"]:
+                module_errors["SQL_Execution"] += 1
+            elif "result_formatting_error" in event["event_type"]:
+                module_errors["Result_Formatting"] += 1
+            else:
+                module_errors["Other"] += 1
+        
+        # 计算成功率
+        total_events = len(events)
+        success_events = len([e for e in events if "success" in e["event_type"]])
+        success_rate = success_events / total_events if total_events > 0 else 0
+        
+        # 平均处理时间
+        processing_times = [e["metadata"]["processing_time"] for e in events 
+                            if "processing_time" in e.get("metadata", {})]
+        avg_processing_time = sum(processing_times) / len(processing_times) if processing_times else 0
+        
+        return {
+            "total_queries": total_events,
+            "success_rate": success_rate,
+            "average_processing_time": avg_processing_time,
+            "error_distribution": module_errors,
+            "recent_errors": error_events[:5]  # 返回最近5个错误
+        }
+
 class SystemMonitor:
-    """系统监控组件"""
-    def __init__(self):
+    """系统监控组件（增强版）"""
+    def __init__(self, max_events=1000):
         self.events = []
+        self.max_events = max_events
     
     def log_event(self, event_type, metadata=None):
         """记录系统事件"""
@@ -255,43 +321,32 @@ class SystemMonitor:
             "metadata": metadata or {}
         }
         self.events.append(event)
+        
+        # 保持事件列表不超过最大限制
+        if len(self.events) > self.max_events:
+            self.events.pop(0)
     
-    def get_performance_metrics(self):
-        """获取性能指标"""
-        # 实际应用中可收集响应时间、成功率等指标
-        return {
-            "total_queries": len([e for e in self.events if e["event_type"] == "query_success"]),
-            "error_rate": len([e for e in self.events if "error" in e["event_type"]]) / len(self.events) if self.events else 0
-        }
-    
-    def get_error_logs(self):
-        """获取错误日志"""
-        return [e for e in self.events if "error" in e["event_type"]]
+    def get_recent_events(self, count=50):
+        """获取最近的事件"""
+        return self.events[-count:] if len(self.events) > count else self.events.copy()
 
-# 示例用法
-if __name__ == "__main__":
-    # 初始化系统
-    qa_system = Text2SQLSystem("example.db")
-    
-    # 示例问题
-    questions = [
-        "销售金额最高的产品是什么？",
-        "显示最近三个月的订单",
-        "删除用户ID为123的记录"
-    ]
-    
-    # 交互测试
-    for q in questions:
-        print(f"用户提问: {q}")
-        response = qa_system.ask_question(q)
-        print(f"系统回答:\n{response}\n{'-'*50}")
-    
-    # 执行系统测试
-    test_report = qa_system.test_system()
-    print("\n系统测试报告:")
-    print(f"准确率: {test_report['metrics']['accuracy']:.2%}")
-    print(f"F1值: {test_report['metrics']['f1_score']:.4f}")
-    
-    # 获取监控数据
-    print("\n系统监控指标:")
-    print(qa_system.monitor.get_performance_metrics())
+# 自定义异常类（与队友模块对齐）
+class NLUException(Exception):
+    """自然语言理解异常"""
+    pass
+
+class SQLGenerationException(Exception):
+    """SQL生成异常"""
+    pass
+
+class DBConnectionException(Exception):
+    """数据库连接异常"""
+    pass
+
+class SQLExecutionException(Exception):
+    """SQL执行异常"""
+    pass
+
+class ResultFormattingException(Exception):
+    """结果格式化异常"""
+    pass
