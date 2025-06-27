@@ -1,0 +1,11 @@
+{
+  "query_id": "q_user",
+  "natural_language_query": "查找所有2023年小于1000的销售额，并按时间排序",
+  "timestamp": "2025-06-27T01:26:35.536170Z",
+  "generated_sql": "SELECT * \nFROM orders \nWHERE YEAR(order_date) = 2023 AND (quantity * (SELECT price FROM products WHERE products.id = orders.product_id)) < 1000 \nORDER BY order_date;",
+  "status": "success",
+  "metadata": {
+    "model": "deepseek-chat",
+    "processing_time_ms": 6556
+  }
+}
