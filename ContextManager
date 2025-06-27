@@ -310,20 +310,29 @@ class ContextualConversation:
                 session["entities"][entity]["columns"] = list(session["entities"][entity]["columns"])
     
     def _extract_nouns(self, text: str) -> List[str]:
-        """从中文文本中提取名词（简化实现）"""
-        # 实际项目中可使用jieba等分词库
-        # 这里使用简单规则：匹配常见名词模式
-        noun_patterns = [
-            r'(\w+地区)', r'(\w+产品)', r'(\w+类别)', r'(\w+部门)',
-            r'(\w+销售额)', r'(\w+利润)', r'(\w+成本)', r'(\w+客户)'
+        """从中文文本中提取名词，适配 medical_checkup 表及医学体检相关字段"""
+        # 只匹配 medical_checkup 表及其字段
+        medical_fields = [
+            "体检表", "medical_checkup", "id", "patient_id", "patient_name", "gender", "age", "checkup_date", "height", "weight", "bmi", "blood_pressure", "fasting_glucose", "total_cholesterol", "triglycerides", "hdl", "ldl", "alt", "ast", "wbc", "rbc", "hemoglobin", "urine_protein", "ecg_result", "ultrasound_result", "doctor_advice", "created_at",
+            "编号", "姓名", "性别", "年龄", "体检日期", "身高", "体重", "体质指数", "血压", "空腹血糖", "总胆固醇", "甘油三酯", "高密度脂蛋白", "低密度脂蛋白", "谷丙转氨酶", "谷草转氨酶", "白细胞计数", "红细胞计数", "血红蛋白", "尿蛋白", "心电图结果", "超声检查结果", "医生建议", "创建时间"
         ]
-        
+        # 构造正则，优先匹配字段名
+        field_pattern = r"|".join([re.escape(f) for f in medical_fields if f])
+        noun_patterns = [
+            rf'({field_pattern})',  # 只匹配表和字段
+        ]
         nouns = []
         for pattern in noun_patterns:
             matches = re.findall(pattern, text)
             nouns.extend(matches)
-        
-        return nouns
+        # 去重，保持顺序
+        seen = set()
+        result = []
+        for n in nouns:
+            if n and n not in seen:
+                seen.add(n)
+                result.append(n)
+        return result
     
     def clear_session(self, session_id: str):
         """清除指定会话"""
