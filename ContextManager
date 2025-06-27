@@ -3,6 +3,9 @@ import json
 from datetime import datetime
 from collections import deque
 from typing import Dict, List, Tuple, Optional
+import sqlparse
+from sqlparse.sql import IdentifierList, Identifier, TokenList
+from sqlparse.tokens import Keyword, DML
 
 class ContextualConversation:
     """
@@ -214,32 +217,97 @@ class ContextualConversation:
         return [word for word in words if word not in stopwords]
     
     def _update_entities(self, session_id: str, user_query: str, sql: str):
-        """更新实体映射表"""
+        """使用专业 SQL 解析库结构化维护实体和表关系，支持多表和嵌套查询"""
+
         session = self.get_session(session_id)
         if not session:
             return
-        
-        # 从SQL中提取实体（表名、字段名）
-        entities = set()
-        
-        # 提取表名
-        table_matches = re.findall(r'FROM\s+(\w+)', sql, re.IGNORECASE)
-        entities.update(table_matches)
-        
-        # 提取字段名
-        column_matches = re.findall(r'SELECT\s+(.*?)\s+FROM', sql, re.IGNORECASE)
-        if column_matches:
-            columns = [col.strip() for col in column_matches[0].split(',')]
-            entities.update(columns)
-        
+
+        def extract_tables_and_columns(parsed):
+            tables = set()
+            columns = set()
+
+            def is_subselect(parsed):
+                if not parsed.is_group:
+                    return False
+                for item in parsed.tokens:
+                    if item.ttype is DML and item.value.upper() == 'SELECT':
+                        return True
+                return False
+
+            def extract_from_token(token):
+                if isinstance(token, IdentifierList):
+                    for identifier in token.get_identifiers():
+                        extract_from_token(identifier)
+                elif isinstance(token, Identifier):
+                    # 处理表名和别名
+                    tables.add(token.get_real_name())
+                elif token.ttype is Keyword:
+                    pass
+                elif token.is_group:
+                    for t in token.tokens:
+                        extract_from_token(t)
+
+            def extract_select_columns(token):
+                if isinstance(token, IdentifierList):
+                    for identifier in token.get_identifiers():
+                        columns.add(identifier.get_real_name() or identifier.get_name())
+                elif isinstance(token, Identifier):
+                    columns.add(token.get_real_name() or token.get_name())
+                elif token.is_group:
+                    for t in token.tokens:
+                        extract_select_columns(t)
+
+            for statement in parsed:
+                from_seen = False
+                select_seen = False
+                for token in statement.tokens:
+                    if token.is_group and is_subselect(token):
+                        # 递归处理子查询
+                        sub_tables, sub_columns = extract_tables_and_columns([token])
+                        tables.update(sub_tables)
+                        columns.update(sub_columns)
+                    if token.ttype is DML and token.value.upper() == 'SELECT':
+                        select_seen = True
+                    if select_seen and token.ttype is Keyword and token.value.upper() == 'FROM':
+                        from_seen = True
+                        select_seen = False
+                    elif select_seen and not token.is_whitespace:
+                        extract_select_columns(token)
+                    elif from_seen and not token.is_whitespace:
+                        extract_from_token(token)
+                        from_seen = False
+            return tables, columns
+
+        parsed = sqlparse.parse(sql)
+        tables, columns = extract_tables_and_columns(parsed)
+
         # 从用户查询中提取实体名词
         nouns = self._extract_nouns(user_query)
-        entities.update(nouns)
-        
-        # 更新会话实体映射
-        for entity in entities:
-            # 维护实体出现次数
-            session["entities"][entity] = session["entities"].get(entity, 0) + 1
+
+        # 结构化维护实体关系
+        if "entities" not in session or not isinstance(session["entities"], dict):
+            session["entities"] = {}
+
+        # 维护表-字段映射
+        for table in tables:
+            if table not in session["entities"]:
+                session["entities"][table] = {"count": 1, "columns": set()}
+            else:
+                session["entities"][table]["count"] += 1
+            session["entities"][table]["columns"].update(columns)
+
+        # 维护名词实体出现次数
+        for noun in nouns:
+            if noun not in session["entities"]:
+                session["entities"][noun] = {"count": 1, "columns": set()}
+            else:
+                session["entities"][noun]["count"] += 1
+
+        # 将 set 转为 list 以便序列化
+        for entity in session["entities"]:
+            if isinstance(session["entities"][entity].get("columns", None), set):
+                session["entities"][entity]["columns"] = list(session["entities"][entity]["columns"])
     
     def _extract_nouns(self, text: str) -> List[str]:
         """从中文文本中提取名词（简化实现）"""
