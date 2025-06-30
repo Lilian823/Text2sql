@@ -1,12 +1,14 @@
 import os
-import matplotlib.pyplot as plt
-import pandas as pd
+
 from pathlib import Path
-from sql_processor import SQLProcessor
+from src.nlp_to_sql.sql_processor import SQLProcessor
 from src.nlp_to_sql.json_handler import read_json, write_json
 from src.nlp_to_sql.sql_generator import generate_sql_from_nl
 from src.nlp_to_sql.context_manager import ContextualConversation
-from src.nlp_to_sql.config import get_db_config
+import matplotlib.pyplot as plt  # type: ignore # 加这一行
+import matplotlib # type: ignore
+matplotlib.use('Agg')  # 不用Tk，不弹窗，适合服务器和无界面环境
+import pandas as pd # type: ignore
 
 # 初始化上下文管理器
 context_manager = ContextualConversation()
@@ -42,9 +44,9 @@ def run_sql_processor(sql_file_path):
         print("="*80)
         for chart_type, fig in processor.charts.items():
             if fig:  # 确保图表有效
-                print(f"\n显示图表: {chart_type}图")
                 plt.figure(fig.number)
-                plt.show()
+                plt.savefig(f"integration/output/{chart_type}_chart.png")
+                plt.close()
     else:
         print("\n未生成任何图表")
     

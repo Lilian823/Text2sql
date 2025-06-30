@@ -1,5 +1,5 @@
 # data_processing.py
-import pandas as pd
+import pandas as pd # type: ignore
 
 # 医疗指标翻译字典 - 集中定义
 MEDICAL_TRANSLATION = {

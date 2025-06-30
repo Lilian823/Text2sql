@@ -1,7 +1,7 @@
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt # type: ignore
 import numpy as np
-import pandas as pd
-from data_processing import translate_column
+import pandas as pd # type: ignore
+from src.nlp_to_sql.data_processing import translate_column
 
 # 设置中文字体
 plt.rcParams['font.sans-serif'] = ['SimHei']
@@ -77,6 +77,8 @@ def plot_line_chart(df, x_column, y_columns, figsize=(10, 6)):
 def plot_pie_chart(df, column_name, figsize=(8, 8)):
     """绘制饼图"""
     # 检查列是否有效
+    if df is None or df.empty or column_name not in df.columns:
+        return None
     if column_name in ['patient_name', 'patient_id', 'doctor_advice']:
         return None
     if column_name not in df.columns:

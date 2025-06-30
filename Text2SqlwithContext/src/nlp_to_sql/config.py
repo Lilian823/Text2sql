@@ -9,6 +9,7 @@ load_dotenv(os.path.join(os.getcwd(), ".env"))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE", "https://api.deepseek.com")
 MODEL_NAME = os.getenv("MODEL_NAME", "deepseek-chat")
+MEDICAL_DB_PASSWORD = os.getenv("MEDICAL_DB_PASSWORD")  # 默认密码，可根据实际情况修改
 
 # 文件路径
 INPUT_QUERY_PATH = os.path.join(os.getcwd(), "integration/input/user_query.json")

@@ -1,10 +1,13 @@
 import json
-import pandas as pd
-from database_interaction import execute_query
-from data_processing import generate_textual_summary, translate_column
-from visualization import plot_bar_chart, plot_line_chart, plot_pie_chart
-import matplotlib.pyplot as plt
+from typing import Self
+import pandas as pd # type: ignore
 
+from src.nlp_to_sql.database_interaction import execute_query
+from src.nlp_to_sql.data_processing import generate_textual_summary, translate_column
+from src.nlp_to_sql.visualization import plot_bar_chart, plot_line_chart, plot_pie_chart
+import warnings
+import matplotlib.pyplot as plt # type: ignore
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 class SQLProcessor:
     def __init__(self, sql_file_path='integration/sql/generated_sql.json'):
         self.sql_file_path = sql_file_path
@@ -24,16 +27,43 @@ class SQLProcessor:
             return None
     
     def correct_table_name(self, sql_query):
-        return sql_query.replace('table_name', 'medical_checkup')
+        replacements = {
+        'table_name': 'medical_checkup',
+        'database_schema': 'medical_checkup',
+        'FROM medical.database_schema': 'FROM medical_checkup',
+        'FROM `database_schema`': 'FROM medical_checkup'
+        }
+    
+        corrected_sql = sql_query
+        for wrong, right in replacements.items():
+            corrected_sql = corrected_sql.replace(wrong, right)
+    
+        return corrected_sql
     
     def execute_query(self, sql_query):
-        if not sql_query:
+        if not sql_query: # type: ignore
             return None
-        corrected_sql = self.correct_table_name(sql_query)
+        corrected_sql = self.correct_table_name(sql_query) # type: ignore
         self.df = execute_query(corrected_sql, "mysql")
+        
+        # 自动转换数值型字段
+        if self.df is not None:
+            for col in self.df.columns:
+                if col in ['fasting_glucose', 'age', 'bmi']:  # 明确指定应转换的字段
+                    try:
+                        self.df[col] = pd.to_numeric(self.df[col], errors='ignore')
+                    except:
+                        pass
         return self.df
-    
+
     def generate_summary(self):
+        """
+        如果DataFrame存在且非空，则生成文本摘要。
+
+        返回:
+            str: 如果DataFrame存在且非空，返回生成的文本摘要；
+             否则返回无法生成摘要的错误信息。
+        """
         if self.df is not None and not self.df.empty:
             self.text_summary = generate_textual_summary(self.df)
             return self.text_summary
@@ -41,9 +71,8 @@ class SQLProcessor:
     
     def generate_charts(self):
         if self.df is None or self.df.empty or len(self.df) < 3:
-            return {}
-        
-        self.charts = {}
+            self.charts = {}
+            return self.charts
         columns = self.df.columns.tolist()
         
         # 1. 柱状图 - 当有合适的X轴和Y轴数据时
@@ -93,7 +122,7 @@ class SQLProcessor:
         
         # 准备数据预览（翻译列名）
         preview_data = []
-        if not self.df.empty:
+        if self.df is not None and not self.df.empty:
             preview_df = self.df.head(10).copy()
             # 翻译列名
             preview_df.columns = [translate_column(col) for col in preview_df.columns]
