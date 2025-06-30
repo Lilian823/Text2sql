@@ -2,6 +2,8 @@ from src.nlp_to_sql.config import INPUT_QUERY_PATH, OUTPUT_SQL_PATH
 from src.nlp_to_sql.json_handler import read_json, write_json
 from src.nlp_to_sql.sql_generator import generate_sql_from_nl
 from src.nlp_to_sql.context_manager import ContextualConversation
+import os
+import json
 
 context_manager = ContextualConversation()
 session_id = "user_session"  # 可根据实际需求动态生成
@@ -37,8 +39,9 @@ def process_query_multi_turn():
         }
 
         # 先判断是否需要澄清
+        
         result = generate_sql_from_nl(query_data)
-        if "需要澄清" in str(result.get("generated_sql", "")):
+        if "生成错误" in str(result.get("generated_sql", "")):
             clarification = result.get("generated_sql")
             print(f"{clarification}")
             # 记录历史
@@ -46,12 +49,24 @@ def process_query_multi_turn():
             continue
 
         # 不需要澄清，生成SQL并导出
-        if result.get("status") == "success" :
+        if result.get("status") == "success":
             print("生成的SQL:", result.get("generated_sql"))
-            if write_json(result, "integration/sql/generated_sql.json"):
+            output_dir = os.path.dirname("integration/sql/generated_sql.json")
+            generated_sql_path = os.path.join(output_dir, "generated_sql.json")
+            results_path = os.path.join(output_dir, "results.json")
+            # 写入 generated_sql.json
+            if write_json(result, generated_sql_path):
                 print("结果已保存到: generated_sql.json")
             else:
                 print("结果保存失败")
+            # 写入 results.json，只保留 generated_sql 字段
+            results = {
+                "generated_sql": result.get("generated_sql", ""),
+            }
+            if write_json(results, results_path):
+                print("仅SQL结果已保存到: results.json")
+            else:
+                print("仅SQL结果保存失败")
             # 记录历史
             context_manager.add_history(session_id, nl_query, result.get("generated_sql", ""), result)
             while True:
@@ -69,19 +84,28 @@ def process_query_multi_turn():
                 follow_up_result = generate_sql_from_nl(follow_up_data)
                 if follow_up_result.get("status") == "success":
                     print("完善后的SQL:", follow_up_result.get("generated_sql"))
+                    # 仅当生成的SQL没有包含“生成错误”时才写入results文件
+                    generated_sql = follow_up_result.get("generated_sql", "")
                     if write_json(follow_up_result, "integration/sql/generated_sql.json"):
                         print("结果已保存到: generated_sql.json")
                     else:
                         print("结果保存失败")
-                    context_manager.add_history(session_id, follow_up, follow_up_result.get("generated_sql", ""), follow_up_result)
+                    if "生成错误" not in str(generated_sql):
+                        results = {
+                            "generated_sql": generated_sql,
+                        }
+                        if write_json(results, results_path):
+                            print("仅SQL结果已保存到: results.json")
+                        else:
+                            print("仅SQL结果保存失败")
+                    else:
+                        print("生成的SQL包含错误，未保存到results.json")
+                    context_manager.add_history(session_id, follow_up, generated_sql, follow_up_result)
                     result = follow_up_result  # 更新result以便多轮补充
-                else:
-                    print("完善SQL失败:", follow_up_result.get("error"))
-                    context_manager.add_history(session_id, follow_up, "", follow_up_result)
                     break
-        else:
-            print("生成SQL失败:", result.get("error"))
-            context_manager.add_history(session_id, nl_query, "", result)
+                else:
+                    print("生成SQL失败:", result.get("error"))
+                    context_manager.add_history(session_id, nl_query, "", result)
 
 if __name__ == "__main__":
     process_query_multi_turn()
