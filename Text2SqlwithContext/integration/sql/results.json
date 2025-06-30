@@ -1,0 +1,3 @@
+{
+  "generated_sql": "SELECT DISTINCT patient_name \nFROM database_schema \nWHERE YEAR(checkup_date) = 2020 \nAND age < 18 \nAND fasting_glucose BETWEEN 3.9 AND 6.1\nAND gender = '女'\nORDER BY patient_name DESC;"
+}
