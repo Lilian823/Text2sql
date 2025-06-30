@@ -295,7 +295,11 @@ class ContextualConversation:
                 session["entities"][table] = {"count": 1, "columns": set()}
             else:
                 session["entities"][table]["count"] += 1
+                # 修正：如果 columns 是 list，转成 set
+                if isinstance(session["entities"][table]["columns"], list):
+                    session["entities"][table]["columns"] = set(session["entities"][table]["columns"])
             session["entities"][table]["columns"].update(columns)
+
 
         # 维护名词实体出现次数
         for noun in nouns:
