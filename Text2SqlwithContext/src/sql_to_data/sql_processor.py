@@ -8,6 +8,7 @@ from src.data_to_image.visualization import plot_bar_chart, plot_line_chart, plo
 import warnings
 import matplotlib.pyplot as plt # type: ignore
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
+
 class SQLProcessor:
     def __init__(self, sql_file_path='integration/sql/generated_sql.json'):
         self.sql_file_path = sql_file_path
@@ -30,13 +31,22 @@ class SQLProcessor:
         replacements = {
         'table_name': 'medical_checkup',
         'database_schema': 'medical_checkup',
-        'FROM medical.database_schema': 'FROM medical_checkup',
-        'FROM `database_schema`': 'FROM medical_checkup'
+        'medical.database_schema': 'medical_checkup',
+        '`database_schema`': '`medical_checkup`',
+        'medical.patient_records': 'medical_checkup',
+        'patient_records': 'medical_checkup',
+        'FROM medical.patient_records': 'FROM medical_checkup',
+        'FROM patient_records': 'FROM medical_checkup'
         }
     
         corrected_sql = sql_query
         for wrong, right in replacements.items():
             corrected_sql = corrected_sql.replace(wrong, right)
+    
+        if 'FROM medical_checkup' not in corrected_sql and 'FROM `medical_checkup`' not in corrected_sql:
+            from_index = corrected_sql.upper().find('FROM')
+            if from_index != -1:
+                corrected_sql = corrected_sql[:from_index+4] + ' medical_checkup' + corrected_sql[from_index+4:]
     
         return corrected_sql
     
@@ -46,10 +56,9 @@ class SQLProcessor:
         corrected_sql = self.correct_table_name(sql_query) # type: ignore
         self.df = execute_query(corrected_sql, "mysql")
         
-        # 自动转换数值型字段
         if self.df is not None:
             for col in self.df.columns:
-                if col in ['fasting_glucose', 'age', 'bmi']:  # 明确指定应转换的字段
+                if col in ['fasting_glucose', 'age', 'bmi']:
                     try:
                         self.df[col] = pd.to_numeric(self.df[col], errors='ignore')
                     except:
@@ -57,58 +66,78 @@ class SQLProcessor:
         return self.df
 
     def generate_summary(self):
-        """
-        如果DataFrame存在且非空，则生成文本摘要。
-
-        返回:
-            str: 如果DataFrame存在且非空，返回生成的文本摘要；
-             否则返回无法生成摘要的错误信息。
-        """
         if self.df is not None and not self.df.empty:
             self.text_summary = generate_textual_summary(self.df)
             return self.text_summary
         return "无法生成摘要: 无数据或查询失败"
     
     def generate_charts(self):
-        if self.df is None or self.df.empty or len(self.df) < 3:
+        if self.df is None or self.df.empty:
             self.charts = {}
             return self.charts
+    
         columns = self.df.columns.tolist()
+        self.charts = {}
+
+        # 1. 优先处理分组统计（gender + count）
+        if {'gender', 'count'}.issubset(columns):
+            pie_chart = plot_pie_chart(
+                self.df, 
+                'gender', 
+                values='count',
+                title="性别分布比例"
+            )
+            if pie_chart:
+                self.charts['pie'] = pie_chart
+            return self.charts
+
+        # 2. 智能选择图表类型
+        # x轴候选（优先级：姓名 > 性别 > 其他分类列）
+        x_candidates = [
+            col for col in columns 
+            if col in ['patient_name', '患者姓名', 'gender', '性别']
+            or (
+                not pd.api.types.is_numeric_dtype(self.df[col]) 
+                and 2 <= self.df[col].nunique() <= 15
+            )
+        ]
         
-        # 1. 柱状图 - 当有合适的X轴和Y轴数据时
-        x_col = next((col for col in ['patient_name', 'patient_id'] if col in columns), None)
-        if x_col:
-            num_cols = [col for col in columns 
-                       if pd.api.types.is_numeric_dtype(self.df[col]) 
-                       and col not in ['patient_name', 'patient_id']
-                       and not self.df[col].isnull().all()]
+        # y轴候选（数值型列）
+        y_candidates = [
+            col for col in columns 
+            if pd.api.types.is_numeric_dtype(self.df[col])
+            and col not in ['patient_id', 'count']
+        ]
+
+        # 生成柱状图
+        if x_candidates and y_candidates and len(self.df) <= 20:
+            x_col = x_candidates[0]
+            y_col = y_candidates[0]
             
-            if num_cols and len(self.df) <= 20:  # 限制数据量
-                self.charts['bar'] = plot_bar_chart(self.df, x_col, num_cols[:3])
-        
-        # 2. 折线图 - 仅在日期字段和数值字段有效时
+            bar_chart = plot_bar_chart(
+                self.df,
+                x_col,
+                [y_col],
+                title=f"{translate_column(y_col)}分布",
+                xlabel=translate_column(x_col),
+                ylabel=translate_column(y_col)
+            )
+            if bar_chart:
+                self.charts['bar'] = bar_chart
+
+        # 生成折线图（时间序列）
         if 'checkup_date' in columns and pd.api.types.is_datetime64_any_dtype(self.df['checkup_date']):
-            num_cols = [col for col in columns 
-                       if pd.api.types.is_numeric_dtype(self.df[col]) 
-                       and col not in ['patient_name', 'patient_id']
-                       and not self.df[col].isnull().all()]
-            
-            if num_cols and len(self.df) >= 5:  # 至少5个数据点
-                # 确保日期排序
-                sorted_df = self.df.sort_values('checkup_date')
-                self.charts['line'] = plot_line_chart(sorted_df, 'checkup_date', num_cols[:2])
-        
-        # 3. 饼图 - 仅当分类数据合适时
-        cat_cols = [col for col in columns 
-                   if not pd.api.types.is_numeric_dtype(self.df[col]) 
-                   and col not in ['patient_name', 'patient_id', 'doctor_advice', 'ecg_result', 'ultrasound_result']
-                   and 2 <= self.df[col].nunique() <= 8]
-        
-        if cat_cols:
-            # 选择最合适的分类列（类别数量适中）
-            best_col = min(cat_cols, key=lambda col: abs(5 - self.df[col].nunique()))
-            self.charts['pie'] = plot_pie_chart(self.df, best_col)
-        
+            num_cols = [col for col in y_candidates if col != 'checkup_date']
+            if num_cols:
+                line_chart = plot_line_chart(
+                    self.df.sort_values('checkup_date'),
+                    'checkup_date',
+                    num_cols[:2],
+                    title="时间趋势分析"
+                )
+                if line_chart:
+                    self.charts['line'] = line_chart
+
         return self.charts
     
     def process(self):
@@ -120,11 +149,9 @@ class SQLProcessor:
         summary = self.generate_summary()
         self.generate_charts()
         
-        # 准备数据预览（翻译列名）
         preview_data = []
         if self.df is not None and not self.df.empty:
             preview_df = self.df.head(10).copy()
-            # 翻译列名
             preview_df.columns = [translate_column(col) for col in preview_df.columns]
             preview_data = preview_df.to_dict(orient='records')
         
