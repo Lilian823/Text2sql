@@ -1,5 +1,5 @@
 {
-    "database_schema": [
+    "medical_checkup": [
         { "name": "id", "type": "INT", "extra": "AUTO_INCREMENT PRIMARY KEY" },
         { "name": "patient_id", "type": "VARCHAR(20)", "extra": "NOT NULL" },
         { "name": "patient_name", "type": "VARCHAR(50)", "extra": "NOT NULL" },
