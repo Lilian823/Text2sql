@@ -1,7 +1,8 @@
 import os
 
 from pathlib import Path
-from src.nlp_to_sql.sql_processor import SQLProcessor
+from src.basic_function.set_env import update_env_vars
+from src.sql_to_data.sql_processor import SQLProcessor
 from src.nlp_to_sql.json_handler import read_json, write_json
 from src.nlp_to_sql.sql_generator import generate_sql_from_nl
 from src.nlp_to_sql.context_manager import ContextualConversation
@@ -10,13 +11,16 @@ import matplotlib # type: ignore
 matplotlib.use('Agg')  # 不用Tk，不弹窗，适合服务器和无界面环境
 import pandas as pd # type: ignore
 
+#设置env文件
+update_env_vars(env_path=".env")
+
 # 初始化上下文管理器
 context_manager = ContextualConversation()
 session_id = "user_session"  # 可根据实际需求动态生成
 
 def get_project_root():
     """获取项目根目录路径 (Text2SqlWithContext)"""
-    return Path(__file__).resolve().parent.parent.parent
+    return Path(__file__).resolve().parent.parent
 
 def run_sql_processor(sql_file_path):
     """执行SQL并展示结果"""

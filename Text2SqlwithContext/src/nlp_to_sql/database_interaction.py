@@ -1,7 +1,7 @@
 import mysql.connector # type: ignore
 from mysql.connector import Error # type: ignore
 import os
-from src.nlp_to_sql.config import get_db_config
+from src.basic_function.config import get_db_config
 import pandas as pd # type: ignore
 
 def create_db_connection(db_type='mysql'):
