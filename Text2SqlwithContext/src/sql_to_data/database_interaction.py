@@ -1,7 +1,7 @@
 from binascii import Error
-from mysql.connector import pooling
-import pandas as pd
-from src.nlp_to_sql.config import get_db_config
+from mysql.connector import pooling # type: ignore
+import pandas as pd # type: ignore
+from src.basic_function.config import get_db_config
 
 # 全局连接池（单例）
 _connection_pool = None
