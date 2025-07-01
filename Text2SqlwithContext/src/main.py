@@ -12,7 +12,7 @@ matplotlib.use('Agg')  # 不用Tk，不弹窗，适合服务器和无界面环�
 import pandas as pd # type: ignore
 
 #设置env文件
-update_env_vars(env_path=".env")
+# update_env_vars(env_path=".env")
 
 # 初始化上下文管理器
 context_manager = ContextualConversation()
