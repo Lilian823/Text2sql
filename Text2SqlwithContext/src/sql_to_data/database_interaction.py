@@ -1,48 +1,34 @@
-import mysql.connector # type: ignore
-from mysql.connector import Error # type: ignore
-import os
-from src.basic_function.config import get_db_config
-import pandas as pd # type: ignore
+from binascii import Error
+from mysql.connector import pooling
+import pandas as pd
+from src.nlp_to_sql.config import get_db_config
 
-def create_db_connection(db_type='mysql'):
-    db_config = get_db_config()
-    config = db_config.get(db_type, {})
-    
-    connection = None
-    try:
-        connection = mysql.connector.connect(**config)
-        print("Successfully connected to the MySQL database.")
-    except Error as err:
-        print(f"Error: '{err}'")
-    
-    return connection
+# 全局连接池（单例）
+_connection_pool = None
 
-def execute_query(query, db_type='mysql'):
-    connection = create_db_connection(db_type)
-    cursor = connection.cursor(dictionary=True)
-    result = None
+def init_connection_pool(db_type='mysql'):
+    global _connection_pool
+    if _connection_pool is None:
+        db_config = get_db_config(db_type)
+        _connection_pool = pooling.MySQLConnectionPool(
+            pool_name="medical_pool",
+            pool_size=5,  # 连接池大小
+            **db_config
+        )
+    return _connection_pool
+
+def execute_query(query: str, db_type: str = 'mysql') -> pd.DataFrame:
     try:
+        pool = init_connection_pool(db_type)
+        connection = pool.get_connection()  # 从池中获取连接
+        cursor = connection.cursor(dictionary=True)
         cursor.execute(query)
         result = cursor.fetchall()
         return pd.DataFrame(result)
     except Error as err:
-        print(f"Error executing query: '{err}'")
+        print(f"执行查询时出错: {err}")
+        return pd.DataFrame()
     finally:
-        if connection is not None and connection.is_connected():
+        if 'connection' in locals() and connection.is_connected():
             cursor.close()
-            connection.close()
-
-def execute_non_query(query, db_type='mysql'):
-    connection = create_db_connection(db_type)
-    cursor = connection.cursor()
-    try:
-        cursor.execute(query)
-        connection.commit()
-        return True
-    except Error as err:
-        print(f"Error executing non-query: '{err}'")
-        return False
-    finally:
-        if connection is not None and connection.is_connected():
-            cursor.close()
-            connection.close()
+            connection.close()  # 实际是返还给连接池
