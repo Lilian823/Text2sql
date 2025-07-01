@@ -192,7 +192,10 @@ def process_query_multi_turn():
                     print("完善后的SQL:", new_sql)
                     
                     # 更新SQL文件
-                    save_result = write_json(follow_up_result, sql_output_path)
+                    results = {
+                        "generated_sql": generated_sql,
+                    }
+                    write_json(results, results_path)
                     if save_result:
                         print(f"结果已更新保存到: {sql_output_path}")
                         
