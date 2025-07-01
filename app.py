@@ -1,6 +1,14 @@
-from flask import Flask, request, jsonify, send_from_directory
+import sys
 import os
-from src.nlp_to_sql.main import run_sql_processor
+
+# 添加 src 目录到 sys.path，确保可以找到 main.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SRC_DIR = os.path.join(BASE_DIR, 'Text2SqlwithContext', 'src')
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
+
+from flask import Flask, request, jsonify, send_from_directory
+from Text2SqlwithContext.src.main import run_sql_processor
 
 app = Flask(__name__)
 
