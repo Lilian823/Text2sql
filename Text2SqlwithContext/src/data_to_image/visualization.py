@@ -7,7 +7,7 @@ from src.sql_to_data.data_processing import translate_column
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
-def plot_bar_chart(df, x_column, y_columns, figsize=(10, 6)):
+def plot_bar_chart(df, x_column, y_columns,xlabel=None,ylabel=None,title=None,figsize=(10, 6)):
     """绘制柱状图，支持多个Y列"""
     # 输入验证
     if df is None or df.empty or not isinstance(df, pd.DataFrame):
@@ -20,7 +20,8 @@ def plot_bar_chart(df, x_column, y_columns, figsize=(10, 6)):
     
     # 创建图形对象
     fig = plt.figure(figsize=figsize)
-    
+    plt.xlabel(translate_column(x_column))
+    plt.ylabel(translate_column(y_columns))
     try:
         # 限制最多显示15个条目
         if len(df) > 15:
@@ -53,7 +54,7 @@ def plot_bar_chart(df, x_column, y_columns, figsize=(10, 6)):
         print(f"生成柱状图时出错: {str(e)}")
         return None
 
-def plot_line_chart(df, x_column, y_columns, figsize=(10, 6)):
+def plot_line_chart(df, x_column, y_columns,title=None, figsize=(10, 6)):
     """绘制折线图，支持多个Y列"""
     # 输入验证
     if df is None or df.empty or not isinstance(df, pd.DataFrame):
@@ -92,7 +93,7 @@ def plot_line_chart(df, x_column, y_columns, figsize=(10, 6)):
         print(f"生成折线图时出错: {str(e)}")
         return None
 
-def plot_pie_chart(df, column_name, figsize=(8, 8), values=None):
+def plot_pie_chart(df, column_name, figsize=(8, 8),title = None, values=None):
     """绘制饼图，支持自定义值列（如count）"""
     if df is None or df.empty or not isinstance(df, pd.DataFrame):
         return None

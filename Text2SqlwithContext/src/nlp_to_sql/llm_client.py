@@ -21,14 +21,7 @@ def call_llm_model(natural_language_query, schema_info=None):
     
     # 构建系统提示
     system_prompt = (
-        "你是SQL专家，请将用户的自然语言需求准确转换为MySQL查询语句。"
-        "只返回SQL语句本身，不要解释。"
-        "如无法确定需求，请返回“生成错误”。"
-        "SQL要求："
-        "1. 避免数据库专有关键字，如LIMIT、TOP。"
-        "2. 表名和列名用双引号。"
-        "3. 语法兼容ANSI SQL-92。"
-        "示例：SELECT \"id\", \"name\" FROM \"employees\";"
+        "你是一个专业的SQL专家，擅长将自然语言转换为准确的SQL查询语句。如果表意明确，请仅返回适用于MYSQL语句，不要包含任何解释或额外文本。如果表意模糊，请返回“生成错误”，并生成给用户提示信息。如果需要结合上下文生成新的SQL，请在生成的SQL中包含上下文信息。请确保生成的SQL语句符合MYSQL语法规范。"
     )
     
     # 构建用户提示

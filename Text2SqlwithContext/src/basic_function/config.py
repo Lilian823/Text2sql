@@ -15,7 +15,7 @@ MEDICAL_DB_PASSWORD = os.getenv("MEDICAL_DB_PASSWORD")  # 默认密码，可根�
 INPUT_QUERY_PATH = os.path.join(os.getcwd(), "integration/input/user_query.json")
 OUTPUT_SQL_PATH = os.path.join(os.getcwd(), "integration/sql/generated_sql.json")
 
-def get_db_config():
+def get_db_config(db_type):
     return {
         'mysql': {
             'host': 'localhost',
@@ -38,4 +38,4 @@ def get_db_config():
             'password': 'your_sqlserver_password',
             'database': 'your_sqlserver_database'
         }
-    }
+    }[db_type]
