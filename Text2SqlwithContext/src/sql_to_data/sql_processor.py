@@ -1,10 +1,9 @@
 import json
 from typing import Self
 import pandas as pd # type: ignore
-
-from src.sql_to_data.database_interaction import execute_query
-from src.sql_to_data.data_processing import generate_textual_summary, translate_column
-from src.data_to_image.visualization import plot_bar_chart, plot_line_chart, plot_pie_chart
+from database_interaction import execute_query
+from data_processing import generate_textual_summary, translate_column
+from data_to_image.visualization import plot_bar_chart, plot_line_chart, plot_pie_chart
 import warnings
 import matplotlib.pyplot as plt # type: ignore
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
