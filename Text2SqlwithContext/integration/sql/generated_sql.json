@@ -1,11 +1,11 @@
 {
   "query_id": "q_user",
-  "natural_language_query": "\n        基于以下对话上下文:\n        这是对话的开始，没有历史上下文。\n        \n        用户的新问题是:\n        查询所有男性的姓名\n        \n        请综合考虑上下文信息生成SQL。\n        ",
-  "timestamp": "2025-07-01T06:38:19.158841Z",
+  "natural_language_query": "\n        基于以下对话上下文:\n        这是对话的开始，没有历史上下文。\n        \n        用户的新问题是:\n        查找所有男性的姓名\n        \n        请综合考虑上下文信息生成SQL。\n        ",
+  "timestamp": "2025-07-01T07:23:08.584390Z",
   "generated_sql": "SELECT patient_name FROM table_name WHERE gender = '男';",
   "status": "success",
   "metadata": {
     "model": "deepseek-chat",
-    "processing_time_ms": 4200
+    "processing_time_ms": 4292
   }
 }

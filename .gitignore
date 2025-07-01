@@ -1,4 +1,6 @@
 t2s_t5_small.py
+Text2SqlwithContext/.env
+
 # 临时文件
 *.tmp
 *.pyc
