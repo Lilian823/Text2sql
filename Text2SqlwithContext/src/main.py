@@ -120,7 +120,6 @@ def process_query_multi_turn():
 
         # 不需要澄清，生成SQL并导出
         if result.get("status") == "success":
-            print("生成的SQL:", result.get("generated_sql"))
             output_dir = os.path.dirname("integration/sql/generated_sql.json")
             generated_sql_path = os.path.join(output_dir, "generated_sql.json")
             results_path = os.path.join(output_dir, "results.json")
@@ -183,6 +182,7 @@ def process_query_multi_turn():
                         }
                         if write_json(results, results_path):
                             print("仅SQL结果已保存到: results.json")
+                            run_sql_processor(sql_output_path)
                         else:
                             print("仅SQL结果保存失败")
                     else:
@@ -190,21 +190,9 @@ def process_query_multi_turn():
                     context_manager.add_history(session_id, follow_up, generated_sql, follow_up_result)
                     result = follow_up_result  # 更新result以便多轮补充
                     new_sql = follow_up_result.get("generated_sql")
-                    print("完善后的SQL:", new_sql)
-                    
-                    # 更新SQL文件
-                    results = {
-                        "generated_sql":result.get("generated_sql", "")
-                    }
-                    write_json(results, results_path)
-                    if save_result:
-                        print(f"结果已更新保存到: {sql_output_path}")
-                        
-                        # 重新执行SQL并展示结果
-                        run_sql_processor(sql_output_path)
-                    else:
-                        print("结果保存失败")
-                    
+                    if not new_sql:
+                        print("未生成新的SQL，跳过执行。")
+                        continue
                     context_manager.add_history(session_id, follow_up, new_sql, follow_up_result)
                     result = follow_up_result
                     generated_sql = new_sql
