@@ -28,7 +28,7 @@ class SQLProcessor:
             return None
     
     def correct_table_name(self, sql_query):
-    # 所有表名映射到带库名的格式
+        # 所有表名映射到带库名的格式
         replacements = {
             'table_name': 'medical.medical_checkup',
             'database_schema': 'medical.medical_checkup',
@@ -38,12 +38,10 @@ class SQLProcessor:
             'patient_records': 'medical.medical_checkup',
             'FROM medical.patient_records': 'FROM medical.medical_checkup',
             'FROM patient_records': 'FROM medical.medical_checkup',
-            # 新增其他表的映射
             'patients': 'medical.patients',
             'FROM patients': 'FROM medical.patients',
-            'blood_pressure_records': 'medical.blood_pressure_records',
-            'blood_glucose_records': 'medical.blood_glucose_records',
-            'lipid_profile_records': 'medical.lipid_profile_records'
+            'patient_metrics': 'medical.patient_metrics',
+            'FROM patient_metrics': 'FROM medical.patient_metrics'
         }
     
         corrected_sql = sql_query
@@ -51,8 +49,7 @@ class SQLProcessor:
             corrected_sql = corrected_sql.replace(wrong, right)
     
         # 特殊处理：如果SQL中未指定库名，自动添加
-        tables_in_db = ['medical_checkup', 'patients', 'blood_pressure_records', 
-                   'blood_glucose_records', 'lipid_profile_records']
+        tables_in_db = ['medical_checkup', 'patients', 'patient_metrics']
         for table in tables_in_db:
             if f'FROM {table}' in corrected_sql and f'FROM medical.{table}' not in corrected_sql:
                 corrected_sql = corrected_sql.replace(f'FROM {table}', f'FROM medical.{table}')
@@ -84,11 +81,28 @@ class SQLProcessor:
         if self.df is None or self.df.empty:
             self.charts = {}
             return self.charts
-    
+
         columns = self.df.columns.tolist()
         self.charts = {}
 
-        # 1. 优先处理分组统计（gender + count）
+        # 1. 处理 patient_metrics 表的折线图
+        if {'metric_name', 'metric_value', 'checkup_date'}.issubset(columns):
+            # 按指标分组绘制
+            metrics = self.df['metric_name'].unique()
+            for metric in metrics[:3]:  # 最多绘制3个指标的图表
+                metric_df = self.df[self.df['metric_name'] == metric].sort_values('checkup_date')
+                if len(metric_df) > 1:  # 只有多于1个数据点时才绘制折线图
+                    line_chart = plot_line_chart(
+                        metric_df,
+                        'checkup_date',
+                        ['metric_value'],
+                        title=f"{translate_column(metric)}趋势变化"
+                    )
+                    if line_chart:
+                        self.charts[f'line_{metric}'] = line_chart
+            return self.charts
+
+        # 2. 处理 patients 表的饼图
         if {'gender', 'count'}.issubset(columns):
             pie_chart = plot_pie_chart(
                 self.df, 
@@ -100,29 +114,29 @@ class SQLProcessor:
                 self.charts['pie'] = pie_chart
             return self.charts
 
-        # 2. 智能选择图表类型
+        # 3. 处理 medical_checkup 表的图表
         # x轴候选（优先级：姓名 > 性别 > 其他分类列）
         x_candidates = [
             col for col in columns 
-            if col in ['patient_name', '患者姓名', 'gender', '性别']
+            if col in ['patient_name', 'name', 'gender', '性别']
             or (
                 not pd.api.types.is_numeric_dtype(self.df[col]) 
                 and 2 <= self.df[col].nunique() <= 15
             )
         ]
-        
+    
         # y轴候选（数值型列）
         y_candidates = [
             col for col in columns 
             if pd.api.types.is_numeric_dtype(self.df[col])
-            and col not in ['patient_id', 'count']
+            and col not in ['patient_id', 'count', 'id']
         ]
 
         # 生成柱状图
         if x_candidates and y_candidates and len(self.df) <= 20:
             x_col = x_candidates[0]
             y_col = y_candidates[0]
-            
+        
             bar_chart = plot_bar_chart(
                 self.df,
                 x_col,
@@ -137,7 +151,7 @@ class SQLProcessor:
         # 生成折线图（时间序列）
         if 'checkup_date' in columns and pd.api.types.is_datetime64_any_dtype(self.df['checkup_date']):
             num_cols = [col for col in y_candidates if col != 'checkup_date']
-            if num_cols:
+            if num_cols and len(self.df) > 1:  # 只有多于1个数据点时才绘制折线图
                 line_chart = plot_line_chart(
                     self.df.sort_values('checkup_date'),
                     'checkup_date',

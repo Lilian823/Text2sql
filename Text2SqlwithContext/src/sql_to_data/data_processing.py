@@ -6,38 +6,85 @@ from typing import Dict, Optional
 MEDICAL_TRANSLATION: Dict[str, str] = {
     'patient_id': '患者ID',
     'patient_name': '患者姓名',
-    'age': '年龄',
-    'fasting_glucose': '空腹血糖',
+    'name': '姓名',
     'gender': '性别',
-    'height': '身高',
-    'weight': '体重',
+    'birth_date': '出生日期',
+    'phone': '联系电话',
+    'address': '地址',
+    'blood_type': '血型',
+    'rh_factor': 'Rh因子',
+    'allergy_history': '过敏史',
+    'chronic_diseases': '慢性病史',
+    'family_disease_history': '家族病史',
+    'age': '年龄',
+    'checkup_date': '检查日期',
+    'height': '身高(cm)',
+    'weight': '体重(kg)',
+    'waist_circumference': '腰围(cm)',
     'bmi': '体质指数',
-    'blood_pressure': '血压',
+    'temperature': '体温(℃)',
+    'pulse_rate': '脉率(次/分钟)',
+    'respiratory_rate': '呼吸频率(次/分钟)',
+    'blood_pressure': '血压(mmHg)',
+    'fasting_glucose': '空腹血糖',
+    'hba1c': '糖化血红蛋白(%)',
     'total_cholesterol': '总胆固醇',
     'triglycerides': '甘油三酯',
     'hdl': '高密度脂蛋白',
     'ldl': '低密度脂蛋白',
     'alt': '谷丙转氨酶',
     'ast': '谷草转氨酶',
+    'serum_creatinine': '血清肌酐',
+    'blood_urea': '血尿素',
     'wbc': '白细胞计数',
     'rbc': '红细胞计数',
     'hemoglobin': '血红蛋白',
+    'platelet_count': '血小板计数',
     'urine_protein': '尿蛋白',
+    'urine_glucose': '尿糖',
+    'vision_left': '左眼视力',
+    'vision_right': '右眼视力',
+    'hearing_status': '听力状况',
     'ecg_result': '心电图结果',
-    'ultrasound_result': '超声检查结果',
-    'doctor_advice': '医生建议',
-    'checkup_date': '检查日期',
-    # 添加更多医疗指标翻译...
+    'ultrasound_abdomen': '腹部超声结果',
+    'ultrasound_cardiac': '心脏超声结果',
+    'carotid_ultrasound': '颈动脉超声',
+    'smoking_status': '吸烟状态',
+    'daily_smoking': '日吸烟量(支)',
+    'alcohol_consumption': '饮酒频率',
+    'exercise_frequency': '锻炼频率',
+    'self_care_ability': '生活自理能力',
+    'cognitive_status': '认知功能',
+    'diagnosis_summary': '初步诊断摘要',
+    'risk_assessment': '健康风险评估',
+    'doctor_advice': '健康指导建议',
+    'metric_name': '指标名称',
+    'metric_value': '指标值',
+    'unit': '单位',
+    'reference_range': '参考范围'
 }
 
-# 医疗指标单位字典
 MEDICAL_UNITS: Dict[str, str] = {
     'glucose': 'mmol/L',
     'cholesterol': 'mmol/L',
     'pressure': 'mmHg',
     'height': 'cm',
     'weight': 'kg',
-    'temperature': '°C'
+    'temperature': '°C',
+    'pulse': '次/分钟',
+    'respiratory': '次/分钟',
+    'bmi': 'kg/m²',
+    'alt': 'U/L',
+    'ast': 'U/L',
+    'creatinine': 'μmol/L',
+    'urea': 'mmol/L',
+    'wbc': '×10⁹/L',
+    'rbc': '×10¹²/L',
+    'hemoglobin': 'g/L',
+    'platelet': '×10⁹/L',
+    'vision': '五分记录法',
+    'waist': 'cm',
+    'smoking': '支/日'
 }
 
 def translate_column(col: str) -> str:
@@ -85,6 +132,8 @@ def generate_textual_summary(df: Optional[pd.DataFrame]) -> str:
         return "## 核心分析结果\n\n- **无有效数据**"
     
     try:
+        if {'metric_name', 'metric_value', 'checkup_date'}.issubset(df.columns):
+            return _generate_metrics_summary(df)
         if set(df.columns) == {'gender', 'count'}:
             total = df['count'].sum()
             summary = "## 核心分析结果\n\n"
@@ -169,6 +218,29 @@ def generate_textual_summary(df: Optional[pd.DataFrame]) -> str:
         print(error_msg)
         return f"## 核心分析结果\n\n- **{error_msg}**"
 
+def _generate_metrics_summary(df: pd.DataFrame) -> str:
+    """处理指标记录表的专用摘要"""
+    summary = "## 核心分析结果\n\n"
+    metrics = df['metric_name'].unique()
+    
+    for metric in metrics[:10]:  # 限制最多显示10个指标
+        metric_df = df[df['metric_name'] == metric]
+        latest = metric_df.sort_values('checkup_date').iloc[-1]
+        unit = latest['unit'] if 'unit' in df.columns else get_medical_unit(metric)
+        
+        # 添加统计信息
+        values = pd.to_numeric(metric_df['metric_value'], errors='coerce').dropna()
+        if len(values) > 1:
+            stats = (
+                f"最新值: {latest['metric_value']}{unit} "
+                f"(平均: {values.mean():.1f}{unit}, 范围: {values.min():.1f}-{values.max():.1f}{unit})"
+            )
+        else:
+            stats = f"最新值: {latest['metric_value']}{unit}"
+            
+        summary += f"- **{translate_column(metric)}**: {stats}\n"
+    
+    return summary
 def safe_translate_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:
     """安全地翻译DataFrame的列名
     
