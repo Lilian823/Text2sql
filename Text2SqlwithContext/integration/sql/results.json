@@ -1,3 +1,3 @@
 {
-  "generated_sql": "SELECT \n    p.name AS patient_name,\n    TIMESTAMPDIFF(YEAR, p.birth_date, CURDATE()) AS age,\n    p.address\nFROM \n    medical_checkup mc\nJOIN \n    patients p ON mc.patient_id = p.patient_id\nWHERE \n    mc.gender = '男'\n    AND (mc.fasting_glucose < 3.9 OR mc.fasting_glucose > 6.1);"
+  "generated_sql": "SELECT \n    gender,\n    COUNT(*) AS count\nFROM \n    medical_checkup\nWHERE \n    bmi > 24\nGROUP BY \n    gender;"
 }
