@@ -69,7 +69,28 @@ class SQLProcessor:
             self.text_summary = generate_textual_summary(self.df)
             return self.text_summary
         return "无法生成摘要: 无数据或查询失败"
-    
+    def need_chart(self):
+        # 如果数据为空或只有一行/一列，不需要图表
+        if self.df is None or self.df.empty:
+            return False
+        if self.df.shape[0] == 1 or self.df.shape[1] == 1:
+            return False
+        columns = self.df.columns.tolist()
+        # 如果有明显的分组、数值型数据，建议使用图表
+        if {'gender', 'count'}.issubset(columns):
+            return True
+        numeric_cols = [col for col in columns if pd.api.types.is_numeric_dtype(self.df[col])]
+        # 如果没有数值型列，且大部分数据为字符串，则不建议用图表
+        if len(numeric_cols) == 0:
+            # 检查每列的数据类型，如果大部分为字符串则不需要图表
+            str_col_count = sum(
+                pd.api.types.is_string_dtype(self.df[col]) for col in columns
+            )
+            if str_col_count / len(columns) > 0.7:
+                return False
+        if len(numeric_cols) >= 1 and self.df.shape[0] > 1:
+            return True
+        return False
     def generate_charts(self):
         if self.df is None or self.df.empty:
             self.charts = {}

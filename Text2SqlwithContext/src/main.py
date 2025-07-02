@@ -193,7 +193,7 @@ def process_query_multi_turn():
                     
                     # 更新SQL文件
                     results = {
-                        "generated_sql": generated_sql,
+                        "generated_sql":result.get("generated_sql", "")
                     }
                     write_json(results, results_path)
                     if save_result:

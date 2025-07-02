@@ -1,11 +1,11 @@
 {
-  "query_id": "q_user",
-  "natural_language_query": "\n        基于以下对话上下文:\n        这是对话的开始，没有历史上下文。\n        \n        用户的新问题是:\n        查询男女比例\n        \n        请综合考虑上下文信息生成SQL。\n        ",
-  "timestamp": "2025-07-01T09:36:53.704756Z",
-  "generated_sql": "SELECT \n    gender AS '性别',\n    COUNT(*) AS '人数',\n    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM medical_checkup), 2) AS '比例(%)'\nFROM \n    medical_checkup\nGROUP BY \n    gender;",
+  "query_id": "q_user_followup",
+  "natural_language_query": "\n        基于以下对话上下文:\n        当前对话涉及的实体: medical_checkup:{'count': 1, 'columns': ['gender', 'COUNT', 'SUM', 'ROUND']}\n最近的对话历史:\n  [1] 用户: 查询男女血糖不正常的比例\n      SQL: SELECT \n    gender,\n    COUNT(*) AS total_count,\n    SUM(CASE WHEN fasting_glucose < 3.9 OR fasting_glucose > 6.1 THEN 1 ELSE 0 END) AS abnormal_count,\n    ROUND(SUM(CASE WHEN fasting_glucose < 3.9 OR fasting_glucose > 6.1 THEN 1 ELSE 0 END) / COUNT(*) * 100, 2) AS abnormal_percentage\nFROM \n    medical_checkup\nGROUP BY \n    gender;\n        \n        用户的新问题是:\n        查询所有不正常血糖的男性的姓名，年龄和家庭住址\n        \n        请综合考虑上下文信息生成SQL。\n        ",
+  "timestamp": "2025-07-02T03:14:49.406666Z",
+  "generated_sql": "SELECT \n    p.name AS patient_name,\n    TIMESTAMPDIFF(YEAR, p.birth_date, CURDATE()) AS age,\n    p.address\nFROM \n    medical_checkup mc\nJOIN \n    patients p ON mc.patient_id = p.patient_id\nWHERE \n    mc.gender = '男'\n    AND (mc.fasting_glucose < 3.9 OR mc.fasting_glucose > 6.1);",
   "status": "success",
   "metadata": {
     "model": "deepseek-chat",
-    "processing_time_ms": 16660
+    "processing_time_ms": 7069
   }
 }
