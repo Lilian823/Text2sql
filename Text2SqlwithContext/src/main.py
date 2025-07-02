@@ -56,7 +56,7 @@ def run_sql_processor(sql_file_path):
     
     # 数据预览 - 显示中文列名
     print("\n" + "="*80)
-    print("数据预览 (前10行):")
+    print("数据预览 (前100行):")
     print("="*80)
     
     if result['dataframe']:

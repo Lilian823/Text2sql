@@ -223,7 +223,7 @@ def _generate_metrics_summary(df: pd.DataFrame) -> str:
     summary = "## 核心分析结果\n\n"
     metrics = df['metric_name'].unique()
     
-    for metric in metrics[:10]:  # 限制最多显示10个指标
+    for metric in metrics[:100]:  # 限制最多显示100个指标
         metric_df = df[df['metric_name'] == metric]
         latest = metric_df.sort_values('checkup_date').iloc[-1]
         unit = latest['unit'] if 'unit' in df.columns else get_medical_unit(metric)

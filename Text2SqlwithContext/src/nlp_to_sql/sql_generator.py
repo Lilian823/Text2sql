@@ -1,4 +1,4 @@
-from Text2SqlwithContext.src.nlp_to_sql.llm_client import call_llm_model
+from src.nlp_to_sql.llm_client import call_llm_model
 import datetime
 import uuid
 
