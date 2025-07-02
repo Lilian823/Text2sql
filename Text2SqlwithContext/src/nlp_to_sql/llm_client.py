@@ -1,5 +1,5 @@
 import openai # type: ignore
-from Text2SqlwithContext.src.basic_function.config import OPENAI_API_KEY, OPENAI_API_BASE, MODEL_NAME
+from src.basic_function.config import OPENAI_API_KEY, OPENAI_API_BASE, MODEL_NAME
 import time
 
 # 配置OpenAI客户端指向DeepSeek API
@@ -21,7 +21,7 @@ def call_llm_model(natural_language_query, schema_info=None):
     
     # 构建系统提示
     system_prompt = (
-        "你是一个专业的SQL专家，擅长将自然语言转换为准确的SQL查询语句。如果表意明确，请仅返回适用于MYSQL语句，不要包含任何解释或额外文本。如果表意模糊，请返回“生成错误”，并生成给用户提示信息。如果需要结合上下文生成新的SQL，请在生成的SQL中包含上下文信息。请确保生成的SQL语句符合MYSQL语法规范。"
+        "你是一个专业的SQL专家，擅长将自然语言转换为准确的供mysql使用的查询语句。多表的关系和结构已经给出。如果表意明确，请仅返回适用于MYSQL语句，不要包含任何解释或额外文本。如果表意模糊，请返回“生成错误”，并生成给用户提示信息。如果需要结合上下文生成新的SQL，请在生成的SQL中包含上下文信息。请确保生成的SQL语句符合MYSQL语法规范。"
     )
     
     # 构建用户提示
