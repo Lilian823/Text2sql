@@ -1,6 +1,7 @@
 import sys
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 import matplotlib.pyplot as plt  # type: ignore
 import matplotlib  # type: ignore
 matplotlib.use('Agg')
@@ -11,9 +12,14 @@ from Text2SqlwithContext.src.sql_to_data.sql_processor import SQLProcessor
 from Text2SqlwithContext.src.nlp_to_sql.json_handler import read_json, write_json
 from Text2SqlwithContext.src.nlp_to_sql.sql_generator import generate_sql_from_nl
 from Text2SqlwithContext.src.nlp_to_sql.context_manager import ContextualConversation
+from flask_cors import CORS
 
+
+# 加载.env环境变量
+load_dotenv(dotenv_path=Path(__file__).resolve().parent / 'Text2SqlwithContext' / '.env')
 
 app = Flask(__name__)
+CORS(app)
 
 # 初始化上下文管理器
 @app.route('/')
@@ -104,14 +110,15 @@ def api_query():
     }
     result = generate_sql_from_nl(query_data)
     sql = result.get("generated_sql", "")
-    # 保存SQL到json文件
-    output_dir = os.path.join("integration", "sql")
+    # 保存SQL到json文件到 Text2SqlwithContext/integration/sql
+    project_root = get_project_root()
+    output_dir = project_root / "Text2SqlwithContext" / "integration" / "sql"
     os.makedirs(output_dir, exist_ok=True)
-    sql_output_path = os.path.join(output_dir, "results.json")
+    sql_output_path = output_dir / "results.json"
     results = {"generated_sql": sql}
-    write_json(results, sql_output_path)
+    write_json(results, str(sql_output_path))
     # 执行SQL并收集所有文字信息和图表
-    sql, message, chart_urls, error = run_sql_processor_and_collect_message(sql_output_path)
+    sql, message, chart_urls, error = run_sql_processor_and_collect_message(str(sql_output_path))
     return jsonify({
         "sql": sql,
         "result": [],

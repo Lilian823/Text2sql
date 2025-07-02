@@ -1,4 +1,3 @@
-# visualization.py
 import matplotlib.pyplot as plt # type: ignore
 import numpy as np
 import pandas as pd # type: ignore
@@ -8,7 +7,7 @@ from src.sql_to_data.data_processing import translate_column
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
-def plot_bar_chart(df, x_column, y_columns, xlabel=None, ylabel=None,title=None, figsize=(10, 6)):
+def plot_bar_chart(df, x_column, y_columns,xlabel=None,ylabel=None,title=None,figsize=(10, 6)):
     """绘制柱状图，支持多个Y列"""
     # 输入验证
     if df is None or df.empty or not isinstance(df, pd.DataFrame):
@@ -21,7 +20,8 @@ def plot_bar_chart(df, x_column, y_columns, xlabel=None, ylabel=None,title=None,
     
     # 创建图形对象
     fig = plt.figure(figsize=figsize)
-    
+    plt.xlabel(translate_column(x_column))
+    plt.ylabel(translate_column(y_columns))
     try:
         # 限制最多显示15个条目
         if len(df) > 15:
@@ -93,52 +93,43 @@ def plot_line_chart(df, x_column, y_columns,title=None, figsize=(10, 6)):
         print(f"生成折线图时出错: {str(e)}")
         return None
 
-def plot_pie_chart(df, column_name, figsize=(8, 8),title=None, values=None):
-    """绘制饼图，支持自定义值列（如count）"""
+def plot_pie_chart(df, column_name, figsize=(8, 8), title=None, values=None):
+    """绘制饼图，支持原始数据和聚合数据"""
     if df is None or df.empty or not isinstance(df, pd.DataFrame):
         return None
     
-    if column_name in ['patient_name', 'patient_id']:
-        return None
-        
     if column_name not in df.columns:
         return None
     
     fig = plt.figure(figsize=figsize)
     
     try:
-        # 新增：支持自定义值列（如count）
-        if values and values in df.columns:
-            sizes = df[values]
-            labels = df[column_name]
-        else:
-            # 默认行为：计算value_counts
+        # 处理原始数据（无count列）
+        if values is None or values not in df.columns:
             counts = df[column_name].value_counts()
-            if len(counts) > 8:
+            if len(counts) > 8:  # 限制分类数量
                 others_count = counts[8:].sum()
                 counts = counts.head(7)
                 counts["其他"] = others_count
             sizes = counts
             labels = counts.index
+        else:
+            # 处理已有count列的数据
+            sizes = df[values]
+            labels = df[column_name]
         
         # 确保至少有两个类别
         if len(sizes) < 2:
             plt.close(fig)
             return None
-            
-        def make_autopct(values):
-            def my_autopct(pct):
-                total = sum(values)
-                val = int(round(pct*total/100.0))
-                return f'{pct:.1f}%\n({val}人)'
-            return my_autopct
-        
+        # 绘制饼图
         plt.pie(sizes, 
                 labels=labels, 
                 autopct=make_autopct(sizes),
                 startangle=90)
         
-        plt.title(f"{translate_column(column_name)}分布", fontsize=14)
+        plt.title(f"{translate_column(column_name)}分布" if not title else title, 
+                 fontsize=14)
         plt.axis('equal')
         
         return fig
@@ -146,3 +137,10 @@ def plot_pie_chart(df, column_name, figsize=(8, 8),title=None, values=None):
         plt.close(fig)
         print(f"生成饼图时出错: {str(e)}")
         return None
+
+def make_autopct(values):
+    def my_autopct(pct):
+        total = sum(values)
+        val = int(round(pct*total/100.0))
+        return f'{pct:.1f}%\n({val}人)'
+    return my_autopct

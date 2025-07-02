@@ -1,5 +1,5 @@
 import openai # type: ignore
-from src.basic_function.config import OPENAI_API_KEY, OPENAI_API_BASE, MODEL_NAME
+from Text2SqlwithContext.src.basic_function.config import OPENAI_API_KEY, OPENAI_API_BASE, MODEL_NAME
 import time
 
 # 配置OpenAI客户端指向DeepSeek API
