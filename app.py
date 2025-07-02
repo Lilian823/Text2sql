@@ -12,7 +12,24 @@ from Text2SqlwithContext.src.nlp_to_sql.json_handler import read_json, write_jso
 from Text2SqlwithContext.src.nlp_to_sql.sql_generator import generate_sql_from_nl
 from Text2SqlwithContext.src.nlp_to_sql.context_manager import ContextualConversation
 
+
 app = Flask(__name__)
+
+# 初始化上下文管理器
+@app.route('/')
+def index():
+    # 假设 web.html 在项目根目录下
+    return send_from_directory('.', 'web.html')
+
+# 静态文件路由，支持直接访问 .css 和 .js 文件
+@app.route('/<path:filename>')
+def serve_static_files(filename):
+    # 只允许访问根目录下的 .css 和 .js 文件
+    if filename.endswith('.css') or filename.endswith('.js'):
+        return send_from_directory('.', filename)
+    else:
+        # 其他文件类型不允许
+        return '', 404
 
 # 初始化上下文管理器
 context_manager = ContextualConversation()
@@ -73,7 +90,7 @@ def api_query():
     # 生成SQL
     # 这里假设有 db_schema.json，实际可根据你的业务调整
     project_root = get_project_root()
-    db_schema_path = project_root / "integration" / "input" / "db_schema.json"
+    db_schema_path = project_root/ "Text2SqlwithContext" / "integration" / "input" / "db_schema.json"
     try:
         with open(db_schema_path, "r", encoding="utf-8") as f:
             db_schema = f.read()
@@ -104,17 +121,19 @@ def api_query():
         "chart_urls": chart_urls
     })
 
-@app.route('/api/upload_sql', methods=['POST'])
-def upload_sql():
-    file = request.files.get('sql_file')
-    if not file:
-        return jsonify({'success': False, 'error': '未收到文件'})
-    try:
-        save_path = os.path.join('integration', 'input', 'db_schema.sql')
-        file.save(save_path)
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+
+# 新的连接数据库逻辑：查找 seed 目录下的 sql 文件
+@app.route('/api/connect_db', methods=['POST'])
+def connect_db():
+    seed_dir = os.path.join('Text2SqlwithContext', 'seed')
+    # 查找 .sql 文件
+    sql_files = [f for f in os.listdir(seed_dir) if f.endswith('.sql')]
+    if sql_files:
+        # 找到至少一个 sql 文件，返回连接成功
+        return jsonify({'success': True, 'message': f'已找到数据库文件: {sql_files[0]}'})
+    else:
+        # 未找到，返回未连接
+        return jsonify({'success': False, 'error': '未找到数据库 SQL 文件，请检查数据库文件是否正确配置'})
 
 @app.route('/api/chart/<filename>')
 def get_chart(filename):

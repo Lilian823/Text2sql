@@ -19,11 +19,9 @@
                     <i class="fas fa-database fa-2x me-3 text-primary"></i>
                     <h1 class="h3 mb-0">智能数据库问答系统</h1>
                 </div>
-                <div class="d-flex">
-                    <button class="btn btn-sm btn-primary" id="connectBtn" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                        <i class="fas fa-plug me-1"></i> 连接数据库
-                    </button>
-                </div>
+                <button class="btn btn-sm btn-primary" id="connectDbBtn">
+                    <i class="fas fa-plug me-1"></i> 连接数据库
+                </button>
             </div>
         </div>
     </header>
@@ -165,69 +163,53 @@
         </div>
     </div>
 
-    <!-- 上传SQL表单模态框 -->
-    <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="uploadModalLabel">上传SQL表单</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="uploadForm">
-                        <div class="mb-3">
-                            <label for="sqlFile" class="form-label">选择SQL文件</label>
-                            <input class="form-control" type="file" id="sqlFile" accept=".sql">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" id="uploadBtn">连接数据库</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- 无需上传SQL文件的模态框 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="web_script.js"></script>
     <script>
-    // 上传SQL表单逻辑
-    document.getElementById('uploadBtn').addEventListener('click', async function() {
-        const fileInput = document.getElementById('sqlFile');
-        if (!fileInput.files.length) {
-            alert('请先选择SQL文件');
-            return;
+    // 连接数据库按钮逻辑
+    function handleConnectDbBtnClick() {
+        fetch('/api/connect_db', {method: 'POST'})
+            .then(resp => resp.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('dbStatusDot').classList.remove('bg-danger');
+                    document.getElementById('dbStatusDot').classList.add('bg-success');
+                    document.getElementById('dbStatusText').textContent = data.message;
+                    // 聊天区显示提示（绿色）
+                    const chatMessages = document.getElementById('chatMessages');
+                    const tipDiv = document.createElement('div');
+                    tipDiv.className = 'message system-message';
+                    tipDiv.style.background = '#eaffea';
+                    tipDiv.style.color = '#218838';
+                    tipDiv.innerHTML = '<strong>' + data.message + '</strong>';
+                    chatMessages.appendChild(tipDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } else {
+                    document.getElementById('dbStatusDot').classList.remove('bg-success');
+                    document.getElementById('dbStatusDot').classList.add('bg-danger');
+                    document.getElementById('dbStatusText').textContent = data.error || '未找到数据库 SQL 文件，请检查数据库文件是否正确配置';
+                    // 聊天区显示提示
+                    const chatMessages = document.getElementById('chatMessages');
+                    const tipDiv = document.createElement('div');
+                    tipDiv.className = 'message system-message';
+                    tipDiv.style.background = '#ffeaea';
+                    tipDiv.style.color = '#b94a48';
+                    tipDiv.innerHTML = '<strong>' + (data.error || '未找到数据库 SQL 文件，未连接数据库') + '</strong>';
+                    chatMessages.appendChild(tipDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            })
+            .catch(() => alert('连接数据库失败'));
+    }
+    document.getElementById('connectDbBtn').addEventListener('click', handleConnectDbBtnClick);
+    // 聊天欢迎区“连接数据库”按钮联动
+    setTimeout(function() {
+        const btn = document.getElementById('welcomeConnectBtn');
+        if (btn) {
+            btn.addEventListener('click', handleConnectDbBtnClick);
         }
-        const file = fileInput.files[0];
-        const formData = new FormData();
-        formData.append('sql_file', file);
-        try {
-            const resp = await fetch('/api/upload_sql', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await resp.json();
-            if (data.success) {
-                // 关闭模态框
-                bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
-                // 聊天区显示提示
-                const chatMessages = document.getElementById('chatMessages');
-                const tipDiv = document.createElement('div');
-                tipDiv.className = 'message system-message';
-                tipDiv.style.background = '#eee';
-                tipDiv.style.color = '#666';
-                tipDiv.innerHTML = '<strong>表单更换成功，之后问答内容将针对新表单展开。</strong>';
-                chatMessages.appendChild(tipDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-                // 可选：重新运行main.py（可通过后端自动触发）
-            } else {
-                alert('上传失败：' + (data.error || '未知错误'));
-            }
-        } catch (e) {
-            alert('上传失败');
-        }
-    });
-    
+    }, 100);
     // 图表类型切换逻辑
 const chartTypes = ['bar', 'pie', 'line'];
 document.querySelectorAll('#chartTypeToggle [data-chart]').forEach(btn => {
@@ -294,16 +276,7 @@ document.getElementById('downloadChartBtn').addEventListener('click', function()
     }
 });
 
-// 聊天欢迎区“连接数据库”按钮联动
-setTimeout(function() {
-    const btn = document.getElementById('welcomeConnectBtn');
-    if (btn) {
-        btn.addEventListener('click', function() {
-            const modal = new bootstrap.Modal(document.getElementById('uploadModal'));
-            modal.show();
-        });
-    }
-}, 100);
+
     </script>
 </body>
 </html>

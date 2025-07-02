@@ -1,8 +1,24 @@
 // 系统配置
 let config = {
-    apiUrl: 'http://localhost:5000/api/query'
+    apiUrl: 'http://localhost:5000/api/query',
+    connectUrl: 'http://localhost:5000/api/connect_db'
 };
 let conversationId = null;
+// 连接数据库按钮逻辑
+async function connectDatabase() {
+    try {
+        const response = await axios.post(config.connectUrl);
+        if (response.data.success) {
+            addMessage('数据库连接成功: ' + response.data.message, 'system');
+            // 你可以在这里设置连接状态为已连接
+        } else {
+            addMessage('数据库连接失败: ' + (response.data.error || '未知错误'), 'system');
+            // 你可以在这里设置连接状态为未连接
+        }
+    } catch (error) {
+        addMessage('数据库连接请求失败', 'system');
+    }
+}
 
 // 发送消息到后端
 async function sendMessage() {
@@ -119,3 +135,9 @@ document.getElementById('sendBtn').addEventListener('click', sendMessage);
 document.getElementById('userInput').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendMessage();
 });
+
+// 假设你的“连接数据库”按钮id为 connectDbBtn
+const connectDbBtn = document.getElementById('connectDbBtn');
+if (connectDbBtn) {
+    connectDbBtn.addEventListener('click', connectDatabase);
+}
