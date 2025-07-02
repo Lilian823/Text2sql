@@ -1,3 +1,3 @@
 {
-  "generated_sql": "SELECT \n    p.name AS patient_name,\n    TIMESTAMPDIFF(YEAR, p.birth_date, CURDATE()) AS age,\n    p.address\nFROM \n    medical_checkup mc\nJOIN \n    patients p ON mc.patient_id = p.patient_id\nWHERE \n    mc.gender = '男'\n    AND (mc.fasting_glucose < 3.9 OR mc.fasting_glucose > 6.1);"
+  "generated_sql": "SELECT \n    p.name,\n    p.gender,\n    TIMESTAMPDIFF(YEAR, p.birth_date, CURDATE()) AS age,\n    CASE \n        WHEN (bgr.measurement_type = '空腹' AND bgr.glucose_value BETWEEN 3.9 AND 6.1) \n             OR (bgr.measurement_type = '餐后2小时' AND bgr.glucose_value < 7.8) \n             OR (bgr.measurement_type = '随机' AND bgr.glucose_value < 11.1) \n             OR (bgr.measurement_type = '睡前' AND bgr.glucose_value BETWEEN 4.4 AND 7.8) \n        THEN '正常' \n        ELSE '不正常' \n    END AS glucose_status\nFROM \n    patients p\nJOIN \n    blood_glucose_records bgr ON p.patient_id = bgr.patient_id\nORDER BY \n    glucose_status, p.name;"
 }

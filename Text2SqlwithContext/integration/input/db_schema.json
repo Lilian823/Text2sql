@@ -1,76 +1,152 @@
 {
-   "database": "medical",
-    "medical_checkup": [
-        { "name": "id", "type": "INT", "extra": "AUTO_INCREMENT PRIMARY KEY" },
-        { "name": "patient_id", "type": "VARCHAR(20)", "extra": "NOT NULL" },
-        { "name": "patient_name", "type": "VARCHAR(50)", "extra": "NOT NULL" },
-        { "name": "gender", "type": "ENUM", "values": ["男", "女"], "extra": "NOT NULL" },
-        { "name": "age", "type": "INT", "extra": "NOT NULL" },
-        { "name": "checkup_date", "type": "DATE", "extra": "NOT NULL" },
-        { "name": "height", "type": "DECIMAL(5,2)", "comment": "身高(cm)" },
-        { "name": "weight", "type": "DECIMAL(5,2)", "comment": "体重(kg)" },
-        { "name": "bmi", "type": "DECIMAL(5,2)", "comment": "体质指数" },
-        { "name": "blood_pressure", "type": "VARCHAR(10)", "comment": "血压(mmHg)" },
-        { "name": "fasting_glucose", "type": "DECIMAL(5,2)", "comment": "空腹血糖(mmol/L)" },
-        { "name": "total_cholesterol", "type": "DECIMAL(5,2)", "comment": "总胆固醇(mmol/L)" },
-        { "name": "triglycerides", "type": "DECIMAL(5,2)", "comment": "甘油三酯(mmol/L)" },
-        { "name": "hdl", "type": "DECIMAL(5,2)", "comment": "高密度脂蛋白(mmol/L)" },
-        { "name": "ldl", "type": "DECIMAL(5,2)", "comment": "低密度脂蛋白(mmol/L)" },
-        { "name": "alt", "type": "INT", "comment": "谷丙转氨酶(U/L)" },
-        { "name": "ast", "type": "INT", "comment": "谷草转氨酶(U/L)" },
-        { "name": "wbc", "type": "DECIMAL(5,2)", "comment": "白细胞计数(×10^9/L)" },
-        { "name": "rbc", "type": "DECIMAL(5,2)", "comment": "红细胞计数(×10^12/L)" },
-        { "name": "hemoglobin", "type": "DECIMAL(5,2)", "comment": "血红蛋白(g/L)" },
-        { "name": "urine_protein", "type": "ENUM", "values": ["阴性", "+-", "+", "++", "+++", "++++"], "comment": "尿蛋白" },
-        { "name": "ecg_result", "type": "VARCHAR(100)", "comment": "心电图结果" },
-        { "name": "ultrasound_result", "type": "VARCHAR(200)", "comment": "超声检查结果" },
-        { "name": "doctor_advice", "type": "TEXT", "comment": "医生建议" },
-        { "name": "created_at", "type": "TIMESTAMP", "extra": "DEFAULT CURRENT_TIMESTAMP" }
+"medical": [
+      {
+        "table_name": "patients",
+        "description": "患者基本信息表",
+        "columns": [
+          {"name": "patient_id", "type": "VARCHAR(20)", "primary_key": true, "description": "患者唯一ID"},
+          {"name": "name", "type": "VARCHAR(50)", "description": "患者姓名"},
+          {"name": "gender", "type": "ENUM('男','女')", "description": "性别"},
+          {"name": "birth_date", "type": "DATE", "description": "出生日期"},
+          {"name": "phone", "type": "VARCHAR(20)", "description": "联系电话"},
+          {"name": "address", "type": "VARCHAR(200)", "description": "联系地址"},
+          {"name": "blood_type", "type": "ENUM('A','B','AB','O','未知')", "description": "血型"},
+          {"name": "rh_factor", "type": "ENUM('阳性','阴性','未知')", "description": "Rh因子"},
+          {"name": "allergy_history", "type": "TEXT", "description": "过敏史"},
+          {"name": "chronic_diseases", "type": "TEXT", "description": "慢性病史"},
+          {"name": "family_disease_history", "type": "TEXT", "description": "家族病史"},
+          {"name": "created_at", "type": "TIMESTAMP", "description": "创建时间"}
+        ]
+      },
+      {
+        "table_name": "medical_checkup",
+        "description": "体检记录表",
+        "columns": [
+          {"name": "id", "type": "INT", "primary_key": true, "auto_increment": true, "description": "记录ID"},
+          {"name": "patient_id", "type": "VARCHAR(20)", "foreign_key": {"table": "patients", "column": "patient_id"}, "description": "患者ID"},
+          {"name": "patient_name", "type": "VARCHAR(50)", "description": "患者姓名"},
+          {"name": "gender", "type": "ENUM('男','女')", "description": "性别"},
+          {"name": "age", "type": "INT", "description": "年龄"},
+          {"name": "checkup_date", "type": "DATE", "description": "体检日期"},
+          {"name": "height", "type": "DECIMAL(5,2)", "description": "身高(cm)"},
+          {"name": "weight", "type": "DECIMAL(5,2)", "description": "体重(kg)"},
+          {"name": "bmi", "type": "DECIMAL(5,2)", "description": "体质指数"},
+          {"name": "blood_pressure", "type": "VARCHAR(10)", "description": "血压(mmHg)"},
+          {"name": "fasting_glucose", "type": "DECIMAL(5,2)", "description": "空腹血糖(mmol/L)"},
+          {"name": "total_cholesterol", "type": "DECIMAL(5,2)", "description": "总胆固醇(mmol/L)"},
+          {"name": "triglycerides", "type": "DECIMAL(5,2)", "description": "甘油三酯(mmol/L)"},
+          {"name": "hdl", "type": "DECIMAL(5,2)", "description": "高密度脂蛋白(mmol/L)"},
+          {"name": "ldl", "type": "DECIMAL(5,2)", "description": "低密度脂蛋白(mmol/L)"},
+          {"name": "alt", "type": "INT", "description": "谷丙转氨酶(U/L)"},
+          {"name": "ast", "type": "INT", "description": "谷草转氨酶(U/L)"},
+          {"name": "wbc", "type": "DECIMAL(5,2)", "description": "白细胞计数(×10^9/L)"},
+          {"name": "rbc", "type": "DECIMAL(5,2)", "description": "红细胞计数(×10^12/L)"},
+          {"name": "hemoglobin", "type": "DECIMAL(5,2)", "description": "血红蛋白(g/L)"},
+          {"name": "urine_protein", "type": "ENUM('阴性','+-','+','++','+++','++++')", "description": "尿蛋白"},
+          {"name": "ecg_result", "type": "VARCHAR(100)", "description": "心电图结果"},
+          {"name": "ultrasound_result", "type": "VARCHAR(200)", "description": "超声检查结果"},
+          {"name": "doctor_advice", "type": "TEXT", "description": "医生建议"},
+          {"name": "created_at", "type": "TIMESTAMP", "description": "创建时间"}
+        ]
+      },
+      {
+        "table_name": "blood_pressure_records",
+        "description": "血压记录表",
+        "columns": [
+          {"name": "id", "type": "INT", "primary_key": true, "auto_increment": true, "description": "记录ID"},
+          {"name": "patient_id", "type": "VARCHAR(20)", "foreign_key": {"table": "patients", "column": "patient_id"}, "description": "患者ID"},
+          {"name": "record_date", "type": "DATE", "description": "记录日期"},
+          {"name": "record_time", "type": "TIME", "description": "记录时间"},
+          {"name": "systolic", "type": "INT", "description": "收缩压(mmHg)"},
+          {"name": "diastolic", "type": "INT", "description": "舒张压(mmHg)"},
+          {"name": "pulse_rate", "type": "INT", "description": "脉搏(次/分)"},
+          {"name": "measurement_condition", "type": "ENUM('静息','活动后','服药后','其他')", "description": "测量条件"},
+          {"name": "notes", "type": "VARCHAR(200)", "description": "备注"}
+        ]
+      },
+      {
+        "table_name": "blood_glucose_records",
+        "description": "血糖记录表",
+        "columns": [
+          {"name": "id", "type": "INT", "primary_key": true, "auto_increment": true, "description": "记录ID"},
+          {"name": "patient_id", "type": "VARCHAR(20)", "foreign_key": {"table": "patients", "column": "patient_id"}, "description": "患者ID"},
+          {"name": "record_date", "type": "DATE", "description": "记录日期"},
+          {"name": "record_time", "type": "TIME", "description": "记录时间"},
+          {"name": "glucose_value", "type": "DECIMAL(5,2)", "description": "血糖值(mmol/L)"},
+          {"name": "measurement_type", "type": "ENUM('空腹','餐后2小时','随机','睡前','其他')", "description": "测量类型"},
+          {"name": "notes", "type": "VARCHAR(200)", "description": "备注"}
+        ]
+      },
+      {
+        "table_name": "lipid_profile_records",
+        "description": "血脂记录表",
+        "columns": [
+          {"name": "id", "type": "INT", "primary_key": true, "auto_increment": true, "description": "记录ID"},
+          {"name": "patient_id", "type": "VARCHAR(20)", "foreign_key": {"table": "patients", "column": "patient_id"}, "description": "患者ID"},
+          {"name": "test_date", "type": "DATE", "description": "检测日期"},
+          {"name": "total_cholesterol", "type": "DECIMAL(5,2)", "description": "总胆固醇(mmol/L)"},
+          {"name": "triglycerides", "type": "DECIMAL(5,2)", "description": "甘油三酯(mmol/L)"},
+          {"name": "hdl", "type": "DECIMAL(5,2)", "description": "高密度脂蛋白(mmol/L)"},
+          {"name": "ldl", "type": "DECIMAL(5,2)", "description": "低密度脂蛋白(mmol/L)"},
+          {"name": "vldl", "type": "DECIMAL(5,2)", "description": "极低密度脂蛋白(mmol/L)"},
+          {"name": "non_hdl_cholesterol", "type": "DECIMAL(5,2)", "description": "非高密度脂蛋白胆固醇(mmol/L)"},
+          {"name": "notes", "type": "VARCHAR(200)", "description": "备注"}
+        ]
+      }
     ],
-      "patients": [
-        {"name": "patient_id", "type": "varchar(20)", "null": "NO", "key": "PRI", "default": null, "extra": ""},
-        {"name": "name", "type": "varchar(50)", "null": "NO", "key": "", "default": null, "extra": ""},
-        {"name": "gender", "type": "enum('男','女')", "null": "NO", "key": "", "default": null, "extra": ""},
-        {"name": "birth_date", "type": "date", "null": "NO", "key": "", "default": null, "extra": ""},
-        {"name": "phone", "type": "varchar(20)", "null": "YES", "key": "", "default": null, "extra": ""},
-        {"name": "address", "type": "varchar(200)", "null": "YES", "key": "", "default": null, "extra": ""},
-        {"name": "blood_type", "type": "enum('A','B','AB','O','未知')", "null": "YES", "key": "", "default": null, "extra": ""},
-        {"name": "rh_factor", "type": "enum('阳性','阴性','未知')", "null": "YES", "key": "", "default": null, "extra": ""},
-        {"name": "allergy_history", "type": "text", "null": "YES", "key": "", "default": null, "extra": ""},
-        {"name": "chronic_diseases", "type": "text", "null": "YES", "key": "", "default": null, "extra": "慢性病史"},
-        {"name": "family_disease_history", "type": "text", "null": "YES", "key": "", "default": null, "extra": "家族病史"},
-        {"name": "created_at", "type": "timestamp", "null": "YES", "key": "", "default": "CURRENT_TIMESTAMP", "extra": "DEFAULT_GENERATED"}
-      ],
-      "blood_pressure_records": [
-        {"name": "id", "type": "int", "null": "NO", "key": "PRI", "default": null, "extra": "auto_increment"},
-        {"name": "patient_id", "type": "varchar(20)", "null": "NO", "key": "MUL", "default": null, "extra": ""},
-        {"name": "record_date", "type": "date", "null": "NO", "key": "", "default": null, "extra": ""},
-        {"name": "record_time", "type": "time", "null": "NO", "key": "", "default": null, "extra": ""},
-        {"name": "systolic", "type": "int", "null": "NO", "key": "", "default": null, "extra": "收缩压(mmHg)"},
-        {"name": "diastolic", "type": "int", "null": "NO", "key": "", "default": null, "extra": "舒张压(mmHg)"},
-        {"name": "pulse_rate", "type": "int", "null": "YES", "key": "", "default": null, "extra": "脉搏(次/分)"},
-        {"name": "measurement_condition", "type": "enum('静息','活动后','服药后','其他')", "null": "YES", "key": "", "default": "静息", "extra": ""},
-        {"name": "notes", "type": "varchar(200)", "null": "YES", "key": "", "default": null, "extra": ""}
-      ],
-      "blood_glucose_records": [
-        {"name": "id", "type": "int", "null": "NO", "key": "PRI", "default": null, "extra": "auto_increment"},
-        {"name": "patient_id", "type": "varchar(20)", "null": "NO", "key": "MUL", "default": null, "extra": ""},
-        {"name": "record_date", "type": "date", "null": "NO", "key": "", "default": null, "extra": ""},
-        {"name": "record_time", "type": "time", "null": "NO", "key": "", "default": null, "extra": ""},
-        {"name": "glucose_value", "type": "decimal(5,2)", "null": "NO", "key": "", "default": null, "extra": "血糖值(mmol/L)"},
-        {"name": "measurement_type", "type": "enum('空腹','餐后2小时','随机','睡前','其他')", "null": "NO", "key": "", "default": null, "extra": ""},
-        {"name": "notes", "type": "varchar(200)", "null": "YES", "key": "", "default": null, "extra": ""}
-      ],
-      "lipid_profile_records": [
-        {"name": "id", "type": "int", "null": "NO", "key": "PRI", "default": null, "extra": "auto_increment"},
-        {"name": "patient_id", "type": "varchar(20)", "null": "NO", "key": "MUL", "default": null, "extra": ""},
-        {"name": "test_date", "type": "date", "null": "NO", "key": "", "default": null, "extra": ""},
-        {"name": "total_cholesterol", "type": "decimal(5,2)", "null": "NO", "key": "", "default": null, "extra": "总胆固醇(mmol/L)"},
-        {"name": "triglycerides", "type": "decimal(5,2)", "null": "NO", "key": "", "default": null, "extra": "甘油三酯(mmol/L)"},
-        {"name": "hdl", "type": "decimal(5,2)", "null": "NO", "key": "", "default": null, "extra": "高密度脂蛋白(mmol/L)"},
-        {"name": "ldl", "type": "decimal(5,2)", "null": "NO", "key": "", "default": null, "extra": "低密度脂蛋白(mmol/L)"},
-        {"name": "vldl", "type": "decimal(5,2)", "null": "YES", "key": "", "default": null, "extra": "极低密度脂蛋白(mmol/L)"},
-        {"name": "non_hdl_cholesterol", "type": "decimal(5,2)", "null": "YES", "key": "", "default": null, "extra": "非高密度脂蛋白胆固醇(mmol/L)"},
-        {"name": "notes", "type": "varchar(200)", "null": "YES", "key": "", "default": null, "extra": ""}
-      ]
-}
+    "relationships": [
+      {
+        "from_table": "medical_checkup",
+        "from_column": "patient_id",
+        "to_table": "patients",
+        "to_column": "patient_id",
+        "relationship_type": "one-to-many"
+      },
+      {
+        "from_table": "blood_pressure_records",
+        "from_column": "patient_id",
+        "to_table": "patients",
+        "to_column": "patient_id",
+        "relationship_type": "one-to-many"
+      },
+      {
+        "from_table": "blood_glucose_records",
+        "from_column": "patient_id",
+        "to_table": "patients",
+        "to_column": "patient_id",
+        "relationship_type": "one-to-many"
+      },
+      {
+        "from_table": "lipid_profile_records",
+        "from_column": "patient_id",
+        "to_table": "patients",
+        "to_column": "patient_id",
+        "relationship_type": "one-to-many"
+      }
+    ],
+    "common_aliases": {
+      "patients": ["患者表", "病人信息"],
+      "medical_checkup": ["体检表", "健康检查"],
+      "blood_pressure_records": ["血压记录", "血压测量"],
+      "blood_glucose_records": ["血糖记录", "血糖测量"],
+      "lipid_profile_records": ["血脂记录", "血脂检测"],
+      "patient_id": ["患者ID", "病人编号"],
+      "name": ["姓名", "患者姓名"],
+      "gender": ["性别"],
+      "birth_date": ["出生日期", "生日"],
+      "checkup_date": ["体检日期", "检查日期"],
+      "height": ["身高"],
+      "weight": ["体重"],
+      "bmi": ["体质指数", "身体质量指数"],
+      "blood_pressure": ["血压"],
+      "fasting_glucose": ["空腹血糖", "血糖"],
+      "total_cholesterol": ["总胆固醇"],
+      "triglycerides": ["甘油三酯"],
+      "hdl": ["高密度脂蛋白", "好胆固醇"],
+      "ldl": ["低密度脂蛋白", "坏胆固醇"],
+      "systolic": ["收缩压", "高压"],
+      "diastolic": ["舒张压", "低压"],
+      "glucose_value": ["血糖值"],
+      "measurement_type": ["测量类型"]
+    }
+  }

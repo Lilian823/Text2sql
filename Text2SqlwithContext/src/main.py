@@ -124,6 +124,7 @@ def process_query_multi_turn():
             output_dir = os.path.dirname("integration/sql/generated_sql.json")
             generated_sql_path = os.path.join(output_dir, "generated_sql.json")
             results_path = os.path.join(output_dir, "results.json")
+            
             # 写入 generated_sql.json
             if write_json(result, generated_sql_path):
                 print("结果已保存到: generated_sql.json")

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt # type: ignore
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
 class SQLProcessor:
-    def __init__(self, sql_file_path='integration/sql/generated_sql.json'):
+    def __init__(self, sql_file_path='integration/sql/results.json'):
         self.sql_file_path = sql_file_path
         self.df = None
         self.text_summary = ""
@@ -20,6 +20,7 @@ class SQLProcessor:
         try:
             with open(self.sql_file_path, 'r', encoding='utf-8') as file:
                 data = json.load(file)
+                print(f"加载SQL查询: {data.get('generated_sql', '无SQL查询')}")
                 self.query_title = data.get('natural_language_query', '医疗查询分析').replace('\n', ' ').strip()
                 return data.get('generated_sql')
         except (FileNotFoundError, json.JSONDecodeError) as e:
@@ -27,25 +28,34 @@ class SQLProcessor:
             return None
     
     def correct_table_name(self, sql_query):
+    # 所有表名映射到带库名的格式
         replacements = {
-        'table_name': 'medical_checkup',
-        'database_schema': 'medical_checkup',
-        'medical.database_schema': 'medical_checkup',
-        '`database_schema`': '`medical_checkup`',
-        'medical.patient_records': 'medical_checkup',
-        'patient_records': 'medical_checkup',
-        'FROM medical.patient_records': 'FROM medical_checkup',
-        'FROM patient_records': 'FROM medical_checkup'
+            'table_name': 'medical.medical_checkup',
+            'database_schema': 'medical.medical_checkup',
+            'medical.database_schema': 'medical.medical_checkup',
+            '`database_schema`': '`medical`.`medical_checkup`',
+            'medical.patient_records': 'medical.medical_checkup',
+            'patient_records': 'medical.medical_checkup',
+            'FROM medical.patient_records': 'FROM medical.medical_checkup',
+            'FROM patient_records': 'FROM medical.medical_checkup',
+            # 新增其他表的映射
+            'patients': 'medical.patients',
+            'FROM patients': 'FROM medical.patients',
+            'blood_pressure_records': 'medical.blood_pressure_records',
+            'blood_glucose_records': 'medical.blood_glucose_records',
+            'lipid_profile_records': 'medical.lipid_profile_records'
         }
     
         corrected_sql = sql_query
         for wrong, right in replacements.items():
             corrected_sql = corrected_sql.replace(wrong, right)
     
-        if 'FROM medical_checkup' not in corrected_sql and 'FROM `medical_checkup`' not in corrected_sql:
-            from_index = corrected_sql.upper().find('FROM')
-            if from_index != -1:
-                corrected_sql = corrected_sql[:from_index+4] + ' medical_checkup' + corrected_sql[from_index+4:]
+        # 特殊处理：如果SQL中未指定库名，自动添加
+        tables_in_db = ['medical_checkup', 'patients', 'blood_pressure_records', 
+                   'blood_glucose_records', 'lipid_profile_records']
+        for table in tables_in_db:
+            if f'FROM {table}' in corrected_sql and f'FROM medical.{table}' not in corrected_sql:
+                corrected_sql = corrected_sql.replace(f'FROM {table}', f'FROM medical.{table}')
     
         return corrected_sql
     
@@ -69,28 +79,7 @@ class SQLProcessor:
             self.text_summary = generate_textual_summary(self.df)
             return self.text_summary
         return "无法生成摘要: 无数据或查询失败"
-    def need_chart(self):
-        # 如果数据为空或只有一行/一列，不需要图表
-        if self.df is None or self.df.empty:
-            return False
-        if self.df.shape[0] == 1 or self.df.shape[1] == 1:
-            return False
-        columns = self.df.columns.tolist()
-        # 如果有明显的分组、数值型数据，建议使用图表
-        if {'gender', 'count'}.issubset(columns):
-            return True
-        numeric_cols = [col for col in columns if pd.api.types.is_numeric_dtype(self.df[col])]
-        # 如果没有数值型列，且大部分数据为字符串，则不建议用图表
-        if len(numeric_cols) == 0:
-            # 检查每列的数据类型，如果大部分为字符串则不需要图表
-            str_col_count = sum(
-                pd.api.types.is_string_dtype(self.df[col]) for col in columns
-            )
-            if str_col_count / len(columns) > 0.7:
-                return False
-        if len(numeric_cols) >= 1 and self.df.shape[0] > 1:
-            return True
-        return False
+    
     def generate_charts(self):
         if self.df is None or self.df.empty:
             self.charts = {}
