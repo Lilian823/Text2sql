@@ -17,53 +17,41 @@ from Text2SqlwithContext.src.sql_to_data.database_interaction import init_connec
 import mysql.connector  # type: ignore
 
 
-# 加载.env环境变量
 load_dotenv(dotenv_path=Path(__file__).resolve().parent / 'Text2SqlwithContext' / '.env')
 
 app = Flask(__name__)
 CORS(app)
 
-# 初始化上下文管理器
 @app.route('/')
 def index():
-    # 假设 web.html 在项目根目录下
     return send_from_directory('.', 'web.html')
 
-# 静态文件路由，支持直接访问 .css 和 .js 文件
 @app.route('/<path:filename>')
 def serve_static_files(filename):
-    # 只允许访问根目录下的 .css 和 .js 文件
     if filename.endswith('.css') or filename.endswith('.js'):
         return send_from_directory('.', filename)
     else:
-        # 其他文件类型不允许
         return '', 404
 
-# 初始化上下文管理器
 context_manager = ContextualConversation()
 session_id = "user_session"
 
 def get_project_root():
     return Path(__file__).resolve().parent
 
-# 整合main.py的核心功能，返回所有文字信息用于系统消息
-
 def run_sql_processor_and_collect_message(sql_file_path):
     messages = []
     messages.append("开始执行SQL并分析结果...")
 
-    # 先读取 SQL 文件内容，判断是否为“生成错误”开头
     import json
     with open(sql_file_path, "r", encoding="utf-8") as f:
         sql_json = json.load(f)
     generated_sql = sql_json.get("generated_sql", "")
     if isinstance(generated_sql, str) and generated_sql.strip().startswith("生成错误"):
-        # 只返回“加载SQL查询: ...”给前端
         error_msg = f"加载SQL查询: {generated_sql}"
-        print(error_msg, file=sys.stderr)  # 终端输出
+        print(error_msg, file=sys.stderr)
         return '', '', {}, error_msg
 
-    # 只有不是“生成错误”才执行 SQLProcessor
     processor = SQLProcessor(sql_file_path)
     result = processor.process()
     if result['status'] == 'error':
@@ -76,7 +64,6 @@ def run_sql_processor_and_collect_message(sql_file_path):
     chart_urls = {}
     if processor.charts:
         messages.append("生成的数据可视化图表:")
-        # 用绝对路径创建目录（确保在Text2SqlwithContext/integration/output）
         output_dir = Path(__file__).parent / "Text2SqlwithContext" / "integration" / "output"
         os.makedirs(output_dir, exist_ok=True)
         for chart_type, fig in processor.charts.items():
@@ -107,8 +94,6 @@ def api_query():
     if not user_query.strip():
         return jsonify({"error": "问题不能为空", "sql": "", "result": [], "conversation_id": session_id})
 
-    # 生成SQL
-    # 这里假设有 db_schema.json，实际可根据你的业务调整
     project_root = get_project_root()
     db_schema_path = project_root/ "Text2SqlwithContext" / "integration" / "input" / "db_schema.json"
     try:
@@ -124,17 +109,14 @@ def api_query():
     }
     result = generate_sql_from_nl(query_data)
     sql = result.get("generated_sql", "")
-    # 保存SQL到json文件到 Text2SqlwithContext/integration/sql
     project_root = get_project_root()
     output_dir = project_root / "Text2SqlwithContext" / "integration" / "sql"
     os.makedirs(output_dir, exist_ok=True)
     sql_output_path = output_dir / "results.json"
     results = {"generated_sql": sql}
     write_json(results, str(sql_output_path))
-    # 执行SQL并收集所有文字信息和图表
     try:
         sql, message, chart_urls, error = run_sql_processor_and_collect_message(str(sql_output_path))
-        # 如果 error 是“加载SQL查询: 生成错误...”则只返回该中文错误
         if error and error.startswith("加载SQL查询: 生成错误"):
             return jsonify({
                 "sql": "",
@@ -153,9 +135,7 @@ def api_query():
             "chart_urls": chart_urls
         })
     except Exception as e:
-        # 新增：将异常内容格式化为“生成错误”并返回
         error_msg = str(e)
-        # 保证返回标准JSON
         return jsonify({
             "sql": "",
             "result": [],
@@ -165,15 +145,12 @@ def api_query():
             "chart_urls": {}
         })
 
-# 新的连接数据库逻辑：查找 seed 目录下的 sql 文件
 @app.route('/api/connect_db', methods=['POST'])
 def connect_db():
     seed_dir = os.path.join('Text2SqlwithContext', 'seed')
     sql_files = [f for f in os.listdir(seed_dir) if f.endswith('.sql')]
     if not sql_files:
-        # 终端详细输出
         print("数据库导入失败：未找到SQL文件", file=sys.stderr)
-        # 状态栏只返回简洁信息
         return jsonify({'success': False, 'error': '数据库导入失败'})
     import_results = []
     try:
@@ -189,9 +166,7 @@ def connect_db():
                     cursor.execute(statement)
                 except Exception as e:
                     connection.rollback()
-                    # 终端详细输出
                     print(f"数据库导入异常: {e}", file=sys.stderr)
-                    # 状态栏只返回简洁信息，消息框显示详细错误
                     return jsonify({'success': False, 'error': '数据库导入失败', 'detail': str(e)})
             connection.commit()
             import_results.append(f"{sql_file} 导入成功")
@@ -199,14 +174,11 @@ def connect_db():
         connection.close()
         return jsonify({'success': True, 'message': '，'.join(import_results)})
     except Exception as e:
-        # 终端详细输出
         print(f"数据库导入异常: {e}", file=sys.stderr)
-        # 状态栏只返回简洁信息，消息框显示详细错误
         return jsonify({'success': False, 'error': '数据库导入失败', 'detail': str(e)})
 
 @app.route('/api/chart/<filename>')
 def get_chart(filename):
-    # 修改为绝对路径查找
     output_dir = Path(__file__).parent / "Text2SqlwithContext" / "integration" / "output"
     return send_from_directory(str(output_dir), filename)
 
