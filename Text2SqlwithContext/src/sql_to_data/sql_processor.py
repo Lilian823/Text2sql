@@ -87,19 +87,22 @@ class SQLProcessor:
         columns = self.df.columns.tolist()
 
         # 折线图
-        if {'checkup_date', 'metric_value'}.issubset(line_data.columns):
-        metric_name = getattr(self, 'metric_name', translate_column('metric_value')) 
-        unit = line_data['unit'].iloc[0] if 'unit' in line_data.columns else get_medical_unit(metric_name)
-        title = f"{metric_name}趋势分析" + (f' ({unit})' if unit else '')
+        if {'checkup_date', 'metric_value'}.issubset(columns):
+            line_data = self.df[['checkup_date', 'metric_value'] + ([col for col in ['unit'] if col in columns])]
+            metric_name = getattr(self, 'metric_name', translate_column('metric_value')) 
+            unit = line_data['unit'].iloc[0] if 'unit' in line_data.columns else None
+            title = f"{metric_name}趋势分析" + (f' ({unit})' if unit else '')
     
-        fig = plot_line_chart(
-            line_data.sort_values('checkup_date'),
-            x_column='checkup_date',
-            y_columns=['metric_value'],
-            title=title,
-            xlabel=translate_column('checkup_date'),
-            ylabel=translate_column('metric_value')
-        )
+            fig = plot_line_chart(
+                line_data.sort_values('checkup_date'),
+                x_column='checkup_date',
+                y_columns=['metric_value'],
+                title=title,
+                xlabel=translate_column('checkup_date'),
+                ylabel=translate_column('metric_value')
+            )
+            if fig:
+                self.charts['line'] = fig
         # 饼图
         if {'gender', 'count'}.issubset(columns):
             pie_chart = plot_pie_chart(

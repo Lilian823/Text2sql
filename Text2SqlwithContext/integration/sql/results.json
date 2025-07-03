@@ -1,3 +1,3 @@
 {
-  "generated_sql": "SELECT \n    p.gender,\n    COUNT(DISTINCT p.patient_id) AS abnormal_glucose_count,\n    GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR ', ') AS patient_names\nFROM \n    patients p\nJOIN \n    medical_checkup mc ON p.patient_id = mc.patient_id\nWHERE \n    (mc.fasting_glucose > 6.1 OR mc.hba1c > 6.5)\nGROUP BY \n    p.gender\nUNION ALL\nSELECT \n    p.gender,\n    COUNT(DISTINCT p.patient_id) AS abnormal_glucose_count,\n    GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR ', ') AS patient_names\nFROM \n    patients p\nJOIN \n    patient_metrics pm ON p.patient_id = pm.patient_id\nWHERE \n    pm.metric_name = 'glucose' AND pm.metric_value > 6.1\nGROUP BY \n    p.gender;"
+  "generated_sql": "SELECT checkup_date, metric_value AS systolic_blood_pressure, unit \nFROM patient_metrics \nWHERE patient_id = 'P10001' AND metric_name = '收缩压' \nORDER BY checkup_date ASC;"
 }
