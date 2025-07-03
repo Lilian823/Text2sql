@@ -1,7 +1,7 @@
 from binascii import Error
 from mysql.connector import pooling # type: ignore
 import pandas as pd # type: ignore
-from src.basic_function.config import get_db_config
+from Text2SqlwithContext.src.basic_function.config import get_db_config
 
 # 全局连接池（单例）
 _connection_pool = None

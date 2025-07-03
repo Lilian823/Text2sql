@@ -13,6 +13,8 @@ from Text2SqlwithContext.src.nlp_to_sql.json_handler import read_json, write_jso
 from Text2SqlwithContext.src.nlp_to_sql.sql_generator import generate_sql_from_nl
 from Text2SqlwithContext.src.nlp_to_sql.context_manager import ContextualConversation
 from flask_cors import CORS
+from Text2SqlwithContext.src.sql_to_data.database_interaction import init_connection_pool
+import mysql.connector  # type: ignore
 
 
 # 加载.env环境变量
@@ -54,7 +56,12 @@ def run_sql_processor_and_collect_message(sql_file_path):
     processor = SQLProcessor(sql_file_path)
     result = processor.process()
     if result['status'] == 'error':
+        # 增加详细错误信息到 messages
         messages.append(f"处理失败: {result['message']}")
+        # 如果有 SQL 错误详情，追加显示
+        if 'sql_error' in result:
+            messages.append(f"SQL执行错误: {result['sql_error']}")
+        # 返回所有消息内容
         return '', '\n'.join(messages), {}, result['message']
     messages.append("="*80)
     messages.append("医疗数据分析摘要:")
@@ -65,11 +72,14 @@ def run_sql_processor_and_collect_message(sql_file_path):
         messages.append("="*80)
         messages.append("生成的数据可视化图表:")
         messages.append("="*80)
+        # 用绝对路径创建目录（确保在Text2SqlwithContext/integration/output）
+        output_dir = Path(__file__).parent / "Text2SqlwithContext" / "integration" / "output"
+        os.makedirs(output_dir, exist_ok=True)
         for chart_type, fig in processor.charts.items():
             if fig:
                 plt.figure(fig.number)
-                chart_path = f"integration/output/{chart_type}_chart.png"
-                plt.savefig(chart_path)
+                chart_path = output_dir / f"{chart_type}_chart.png"
+                plt.savefig(str(chart_path))
                 plt.close()
                 chart_urls[chart_type] = f"/api/chart/{chart_type}_chart.png"
     else:
@@ -133,18 +143,46 @@ def api_query():
 @app.route('/api/connect_db', methods=['POST'])
 def connect_db():
     seed_dir = os.path.join('Text2SqlwithContext', 'seed')
-    # 查找 .sql 文件
     sql_files = [f for f in os.listdir(seed_dir) if f.endswith('.sql')]
-    if sql_files:
-        # 找到至少一个 sql 文件，返回连接成功
-        return jsonify({'success': True, 'message': f'已找到数据库文件: {sql_files[0]}'})
-    else:
-        # 未找到，返回未连接
-        return jsonify({'success': False, 'error': '未找到数据库 SQL 文件，请检查数据库文件是否正确配置'})
+    if not sql_files:
+        # 终端详细输出
+        print("数据库导入失败：未找到SQL文件", file=sys.stderr)
+        # 状态栏只返回简洁信息
+        return jsonify({'success': False, 'error': '数据库导入失败'})
+    import_results = []
+    try:
+        pool = init_connection_pool('mysql')
+        connection = pool.get_connection()
+        cursor = connection.cursor()
+        for sql_file in sql_files:
+            sql_path = os.path.join(seed_dir, sql_file)
+            with open(sql_path, 'r', encoding='utf-8') as f:
+                sql_content = f.read()
+            for statement in [s.strip() for s in sql_content.split(';') if s.strip()]:
+                try:
+                    cursor.execute(statement)
+                except Exception as e:
+                    connection.rollback()
+                    # 终端详细输出
+                    print(f"数据库导入异常: {e}", file=sys.stderr)
+                    # 状态栏只返回简洁信息，消息框显示详细错误
+                    return jsonify({'success': False, 'error': '数据库导入失败', 'detail': str(e)})
+            connection.commit()
+            import_results.append(f"{sql_file} 导入成功")
+        cursor.close()
+        connection.close()
+        return jsonify({'success': True, 'message': '，'.join(import_results)})
+    except Exception as e:
+        # 终端详细输出
+        print(f"数据库导入异常: {e}", file=sys.stderr)
+        # 状态栏只返回简洁信息，消息框显示详细错误
+        return jsonify({'success': False, 'error': '数据库导入失败', 'detail': str(e)})
 
 @app.route('/api/chart/<filename>')
 def get_chart(filename):
-    return send_from_directory('integration/output', filename)
+    # 修改为绝对路径查找
+    output_dir = Path(__file__).parent / "Text2SqlwithContext" / "integration" / "output"
+    return send_from_directory(str(output_dir), filename)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
