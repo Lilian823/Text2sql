@@ -87,53 +87,40 @@ class SQLProcessor:
         columns = self.df.columns.tolist()
 
         # 折线图
-        date_col = None
-        value_col = None
-        unit_col = None
-    
-        # 寻找可能的日期列
-        date_candidates = ['checkup_date', 'date', 'measurement_date']
-        for col in columns:
-            if col in date_candidates:
-                date_col = col
-                break
-    
-        # 寻找可能的值列（排除非数值列）
-        value_candidates = [col for col in columns 
-                       if pd.api.types.is_numeric_dtype(self.df[col]) 
-                       and col not in ['patient_id', 'id', 'count']]
-    
-        # 寻找单位列
-        unit_candidates = ['unit', 'units', 'measurement_unit']
-        for col in columns:
-            if col in unit_candidates:
-                unit_col = col
-                break
-    
-        # 如果找到日期列和至少一个数值列
-        if date_col and value_candidates:
-            # 使用第一个数值列
-            value_col = value_candidates[0]
-            # 获取指标名称（尝试从列名推断）
-            metric_name = value_col if value_col == 'metric_value' else translate_column(value_col)
-        
-            # 准备数据
-            line_data = self.df[[date_col, value_col]]
-            if unit_col:
-                line_data[unit_col] = self.df[unit_col]
-        
+        if 'metric_value' in columns and 'checkup_date' in columns:
+            # 获取指标名称（如果存在）
+            metric_name = "指标值"
+            if 'metric_name' in columns and not self.df['metric_name'].empty:
+                # 取第一个非空的指标名称（直接使用，不翻译）
+                metric_name = self.df['metric_name'].dropna().iloc[0] if not self.df['metric_name'].dropna().empty else "指标值"
+            
             # 获取单位
-            unit = line_data[unit_col].iloc[0] if unit_col and unit_col in line_data.columns else None
-        
+            unit = None
+            if 'unit' in columns and not self.df['unit'].empty:
+                # 取第一个非空的单位
+                unit = self.df['unit'].dropna().iloc[0] if not self.df['unit'].dropna().empty else None
+            
+            # 生成标题
             title = f"{metric_name}趋势分析" + (f' ({unit})' if unit else '')
-        
+            
+            # 准备数据
+            line_data = self.df[['checkup_date', 'metric_value']].copy()
+            
+            # 确保日期类型正确
+            if not pd.api.types.is_datetime64_any_dtype(line_data['checkup_date']):
+                try:
+                    line_data['checkup_date'] = pd.to_datetime(line_data['checkup_date'])
+                except:
+                    pass
+            
+            # 生成折线图
             fig = plot_line_chart(
-                line_data.sort_values(date_col),
-                x_column=date_col,
-                y_columns=[value_col],
+                line_data.sort_values('checkup_date'),
+                x_column='checkup_date',
+                y_columns=['metric_value'],
                 title=title,
-                xlabel=translate_column(date_col),
-                ylabel=metric_name
+                xlabel='检查日期',  # 直接使用中文，不翻译
+                ylabel=metric_name  # 直接使用指标名称
             )
             if fig:
                 self.charts['line'] = fig
