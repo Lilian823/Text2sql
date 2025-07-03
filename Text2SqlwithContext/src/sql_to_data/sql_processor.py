@@ -87,32 +87,56 @@ class SQLProcessor:
         columns = self.df.columns.tolist()
 
         # 折线图
-        if {'checkup_date', 'metric_value'}.issubset(columns):
-            line_data = self.df[['checkup_date', 'metric_value'] + ([col for col in ['unit'] if col in columns])]
-            metric_name = getattr(self, 'metric_name', translate_column('metric_value')) 
-            unit = line_data['unit'].iloc[0] if 'unit' in line_data.columns else None
-            title = f"{metric_name}趋势分析" + (f' ({unit})' if unit else '')
+        date_col = None
+        value_col = None
+        unit_col = None
     
+        # 寻找可能的日期列
+        date_candidates = ['checkup_date', 'date', 'measurement_date']
+        for col in columns:
+            if col in date_candidates:
+                date_col = col
+                break
+    
+        # 寻找可能的值列（排除非数值列）
+        value_candidates = [col for col in columns 
+                       if pd.api.types.is_numeric_dtype(self.df[col]) 
+                       and col not in ['patient_id', 'id', 'count']]
+    
+        # 寻找单位列
+        unit_candidates = ['unit', 'units', 'measurement_unit']
+        for col in columns:
+            if col in unit_candidates:
+                unit_col = col
+                break
+    
+        # 如果找到日期列和至少一个数值列
+        if date_col and value_candidates:
+            # 使用第一个数值列
+            value_col = value_candidates[0]
+            # 获取指标名称（尝试从列名推断）
+            metric_name = value_col if value_col == 'metric_value' else translate_column(value_col)
+        
+            # 准备数据
+            line_data = self.df[[date_col, value_col]]
+            if unit_col:
+                line_data[unit_col] = self.df[unit_col]
+        
+            # 获取单位
+            unit = line_data[unit_col].iloc[0] if unit_col and unit_col in line_data.columns else None
+        
+            title = f"{metric_name}趋势分析" + (f' ({unit})' if unit else '')
+        
             fig = plot_line_chart(
-                line_data.sort_values('checkup_date'),
-                x_column='checkup_date',
-                y_columns=['metric_value'],
+                line_data.sort_values(date_col),
+                x_column=date_col,
+                y_columns=[value_col],
                 title=title,
-                xlabel=translate_column('checkup_date'),
-                ylabel=translate_column('metric_value')
+                xlabel=translate_column(date_col),
+                ylabel=metric_name
             )
             if fig:
                 self.charts['line'] = fig
-        # 饼图
-        if {'gender', 'count'}.issubset(columns):
-            pie_chart = plot_pie_chart(
-                self.df, 
-                'gender', 
-                values='count',
-                title="性别分布比例"
-            )
-            if pie_chart:
-                self.charts['pie'] = pie_chart 
 
         # 柱状图
         # x轴候选（优先级：姓名 > 性别 > 其他分类列）

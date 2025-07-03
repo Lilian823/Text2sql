@@ -61,7 +61,8 @@ MEDICAL_TRANSLATION: Dict[str, str] = {
     'metric_name': '指标名称',
     'metric_value': '指标值',
     'unit': '单位',
-    'reference_range': '参考范围'
+    'reference_range': '参考范围',
+    'systolic_blood_pressure': '收缩压'
 }
 
 MEDICAL_UNITS: Dict[str, str] = {
