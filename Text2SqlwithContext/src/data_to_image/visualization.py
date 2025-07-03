@@ -8,7 +8,6 @@ from Text2SqlwithContext.src.sql_to_data.data_processing import translate_column
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
-# 柱状图函数保持不变（完全保留原始代码）
 def plot_bar_chart(df, x_column, y_columns,xlabel=None,ylabel=None,title=None, figsize=(10, 6)):
     """绘制柱状图，支持多个Y列"""
     # 输入验证
@@ -61,7 +60,7 @@ def plot_bar_chart(df, x_column, y_columns,xlabel=None,ylabel=None,title=None, f
         print(f"生成柱状图时出错: {str(e)}")
         return None
 
-# 折线图函数修改（仅修改此部分）
+# 折线图函数修改
 def plot_line_chart(df, x_column, y_columns, xlabel=None, ylabel=None, title=None, figsize=(10, 6)):
     """绘制折线图，支持多个Y列"""
     # 1. 输入验证增强
@@ -69,7 +68,7 @@ def plot_line_chart(df, x_column, y_columns, xlabel=None, ylabel=None, title=Non
         print("错误：输入数据为空或非DataFrame")
         return None
     
-    # 排除无效列（保留原逻辑，扩展黑名单）
+    # 排除无效列）
     invalid_cols = ['patient_name', 'patient_id', 'id', 'record_id']
     valid_y = [col for col in y_columns if col not in invalid_cols and col in df.columns]
     if not valid_y or x_column not in df.columns:
