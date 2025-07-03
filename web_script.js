@@ -217,6 +217,9 @@ function showChartImage(url) {
 function addMessage(content, sender) {
     const chatMessages = document.getElementById('chatMessages');
     const messageDiv = document.createElement('div');
+    // 去除内容中的所有星号
+    const cleanContent = content.replace(/\*/g, '');
+    let fontStyle = "font-family:inherit;font-size:inherit;white-space:pre-wrap;margin:0;";
     if (sender === 'user') {
         messageDiv.className = 'message user-message';
         messageDiv.innerHTML = `
@@ -224,7 +227,7 @@ function addMessage(content, sender) {
                 <i class="fas fa-user me-2 text-primary"></i>
                 <strong>用户</strong>
             </div>
-            <p>${content}</p>
+            <pre style="${fontStyle}">${cleanContent}</pre>
         `;
     } else {
         messageDiv.className = 'message system-message';
@@ -233,7 +236,7 @@ function addMessage(content, sender) {
                 <i class="fas fa-robot me-2 text-success"></i>
                 <strong>数据库助手</strong>
             </div>
-            <p>${content}</p>
+            <pre style="${fontStyle}">${cleanContent}</pre>
         `;
     }
     chatMessages.appendChild(messageDiv);
