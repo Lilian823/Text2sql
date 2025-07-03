@@ -111,6 +111,12 @@ def process_query_multi_turn():
         # 先判断是否需要澄清
         
         result = generate_sql_from_nl(query_data)
+        # 检查 deepseek 调用失败
+        if result.get("error") or "deepseek" in str(result).lower():
+            print("卧槽，因为我的崩溃，用户彻底怒了。")
+            # 记录历史
+            context_manager.add_history(session_id, nl_query, "", result)
+            continue
         if "生成错误" in str(result.get("generated_sql", "")):
             clarification = result.get("generated_sql")
             print(f"{clarification}")
