@@ -15,6 +15,50 @@ def init_connection_pool(db_type='mysql'):
             pool_size=5,  # 连接池大小
             **db_config
         )
+        # elif db_type == 'postgresql':
+        #     import psycopg2
+        #     from psycopg2 import pool
+        #     # 创建ThreadedConnectionPool
+        #     _connection_pool = pool.ThreadedConnectionPool(
+        #         minconn=5,   # 最小连接数
+        #         maxconn=20,  # 最大连接数
+        #         host=db_config['host'],
+        #         user=db_config['user'],
+        #         password=db_config['password'],
+        #         database=db_config['database']
+        #     )
+        # elif db_type == 'sqlserver':
+        #     import pyodbc
+        #     # 实现SQL Server连接池类
+        #     class SQLServerConnectionPool:
+        #         def __init__(self, max_size=10):
+        #             self.pool = []
+        #             self.max_size = max_size
+        #             for _ in range(5):
+        #                 conn = pyodbc.connect(
+        #                     f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+        #                     f"SERVER={db_config['host']};"
+        #                     f"DATABASE={db_config['database']};"
+        #                     f"UID={db_config['user']};"
+        #                     f"PWD={db_config['password']}"
+        #                 )
+        #                 self.pool.append(conn)
+        #                 
+        #         def get_connection(self):
+        #             if self.pool:
+        #                 return self.pool.pop()
+        #             elif len(self.pool) < self.max_size:
+        #                 # 创建新连接
+        #                 conn = pyodbc.connect(...)
+        #                 return conn
+        #             else:
+        #                 raise RuntimeError("连接池耗尽")
+        #                 
+        #         def release_connection(self, conn):
+        #             if conn.connected:
+        #                 self.pool.append(conn)
+        #                 
+        #     _connection_pool = SQLServerConnectionPool()
     return _connection_pool
 
 def execute_query(query: str, db_type: str = 'mysql') -> pd.DataFrame:
@@ -31,4 +75,4 @@ def execute_query(query: str, db_type: str = 'mysql') -> pd.DataFrame:
     finally:
         if 'connection' in locals() and connection.is_connected():
             cursor.close()
-            connection.close()  # 实际是返还给连接池
+            connection.close()
