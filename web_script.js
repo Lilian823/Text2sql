@@ -51,7 +51,12 @@ function handleResponse(data) {
     }
     if (data.sql) addSqlMessage(data.sql);
     if (data.message) addMessage(data.message, 'system');
-    if (data.chart_url) showChartImage(data.chart_url);
+    // 新增：处理 chart_urls
+    if (data.chart_urls) {
+        // 显示可视化区域
+        document.getElementById('visualizationContainer').style.display = 'block';
+        showChartImages(data.chart_urls);
+    }
 }
 
 function showChartImage(url) {

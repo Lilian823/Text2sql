@@ -35,9 +35,6 @@
                         <span class="status-dot" id="dbStatusDot"></span>
                         <span id="dbStatusText">未连接数据库，请手动连接</span>
                     </div>
-                    <div>
-                        <span class="badge bg-success" id="modelStatus">Text2SQL 模型: 初始化中...</span>
-                    </div>
                 </div>
                 
                 <!-- 聊天容器 -->
@@ -172,33 +169,34 @@
         fetch('/api/connect_db', {method: 'POST'})
             .then(resp => resp.json())
             .then(data => {
+                const chatMessages = document.getElementById('chatMessages');
+                const tipDiv = document.createElement('div');
+                tipDiv.className = 'message system-message';
                 if (data.success) {
                     document.getElementById('dbStatusDot').classList.remove('bg-danger');
                     document.getElementById('dbStatusDot').classList.add('bg-success');
-                    document.getElementById('dbStatusText').textContent = data.message;
-                    // 聊天区显示提示（绿色）
-                    const chatMessages = document.getElementById('chatMessages');
-                    const tipDiv = document.createElement('div');
-                    tipDiv.className = 'message system-message';
+                    // 状态栏只显示简洁信息
+                    document.getElementById('dbStatusText').textContent = data.message || '数据库连接成功';
+                    // 消息框显示详细信息
                     tipDiv.style.background = '#eaffea';
                     tipDiv.style.color = '#218838';
-                    tipDiv.innerHTML = '<strong>' + data.message + '</strong>';
-                    chatMessages.appendChild(tipDiv);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    tipDiv.innerHTML = '<strong>' + (data.message || '数据库连接成功') + '</strong>';
                 } else {
                     document.getElementById('dbStatusDot').classList.remove('bg-success');
                     document.getElementById('dbStatusDot').classList.add('bg-danger');
-                    document.getElementById('dbStatusText').textContent = data.error || '未找到数据库 SQL 文件，请检查数据库文件是否正确配置';
-                    // 聊天区显示提示
-                    const chatMessages = document.getElementById('chatMessages');
-                    const tipDiv = document.createElement('div');
-                    tipDiv.className = 'message system-message';
+                    // 状态栏只显示简洁信息
+                    document.getElementById('dbStatusText').textContent = data.error || '数据库导入失败';
+                    // 消息框显示详细错误（含detail）
                     tipDiv.style.background = '#ffeaea';
                     tipDiv.style.color = '#b94a48';
-                    tipDiv.innerHTML = '<strong>' + (data.error || '未找到数据库 SQL 文件，未连接数据库') + '</strong>';
-                    chatMessages.appendChild(tipDiv);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    let detailMsg = '';
+                    if (data.detail) {
+                        detailMsg = '<br><span style="font-size:0.95em;color:#b94a48;">详细信息：' + data.detail + '</span>';
+                    }
+                    tipDiv.innerHTML = '<strong>' + (data.error || '数据库导入失败') + '</strong>' + detailMsg;
                 }
+                chatMessages.appendChild(tipDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             })
             .catch(() => alert('连接数据库失败'));
     }

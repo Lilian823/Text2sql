@@ -120,7 +120,7 @@ body {
 }
 
 .btn-primary {
-    background: var(--primary);
+    background: #0d6dfd;
     border: none;
     color: #fff;
     transition: all 0.3s;

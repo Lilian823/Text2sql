@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt # type: ignore
 import numpy as np
 import pandas as pd # type: ignore
-from src.sql_to_data.data_processing import translate_column
+from Text2SqlwithContext.src.sql_to_data.data_processing import translate_column
 
 # 设置中文字体
 plt.rcParams['font.sans-serif'] = ['SimHei']
