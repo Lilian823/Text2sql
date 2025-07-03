@@ -130,26 +130,26 @@ def generate_textual_summary(df: Optional[pd.DataFrame]) -> str:
     """
     # 输入验证
     if df is None or not isinstance(df, pd.DataFrame) or df.empty:
-        return "## 核心分析结果\n\n- **无有效数据**"
+        return "\n核心分析结果\n- 无有效数据"
     
     try:
         if {'metric_name', 'metric_value', 'checkup_date'}.issubset(df.columns):
             return _generate_metrics_summary(df)
         if set(df.columns) == {'gender', 'count'}:
             total = df['count'].sum()
-            summary = "## 核心分析结果\n\n"
+            summary = "\n核心分析结果\n"
             for _, row in df.iterrows():
                 percentage = (row['count'] / total) * 100
                 summary += (
-                    f"- **{translate_column(row['gender'])}**: "
+                    f"- {translate_column(row['gender'])}: "
                     f"{row['count']}人 ({percentage:.1f}%)\n"
                 )
             return summary
         # 标识类列名单
         ID_COLS = ['patient_id', 'patient_name', 'id']
         
-        summary = "## 核心分析结果\n\n"
-        summary += f"- **涉及记录数**: {len(df)} 条\n"
+        summary = "\n核心分析结果\n"
+        summary += f"- 涉及记录数: {len(df)} 条\n"
         
         # 数值型指标分析
         num_summary = []
@@ -168,13 +168,13 @@ def generate_textual_summary(df: Optional[pd.DataFrame]) -> str:
                 unit = get_medical_unit(col)
                 
                 num_summary.append(
-                    f"- **{translate_column(col)}**: "
+                    f"- {translate_column(col)}: "
                     f"平均{mean_value:.1f}{unit} "
                     f"(范围: {min_value:.1f}-{max_value:.1f}{unit})"
                 )
         
         if num_summary:
-            summary += "\n**数值指标分析**:\n" + "\n".join(num_summary)
+            summary += "\n数值指标分析:\n" + "\n".join(num_summary)
         
         # 分类数据统计（排除标识列）
         cat_summary = []
@@ -186,9 +186,9 @@ def generate_textual_summary(df: Optional[pd.DataFrame]) -> str:
                     if len(names) == 0:
                         continue
                     if len(names) <= 10:
-                        cat_summary.append(f"- **涉及患者**: {', '.join(map(str, names))}")
+                        cat_summary.append(f"- 涉及患者: {', '.join(map(str, names))}")
                     else:
-                        cat_summary.append(f"- **涉及患者**: {len(names)}人")
+                        cat_summary.append(f"- 涉及患者: {len(names)}人")
                 continue
                 
             if pd.api.types.is_categorical_dtype(df[col]) or pd.api.types.is_object_dtype(df[col]):
@@ -197,27 +197,27 @@ def generate_textual_summary(df: Optional[pd.DataFrame]) -> str:
                     continue
                     
                 if len(unique_vals) <= 5:
-                    cat_summary.append(f"- **{translate_column(col)}**: {', '.join(map(str, unique_vals))}")
+                    cat_summary.append(f"- {translate_column(col)}: {', '.join(map(str, unique_vals))}")
                 else:
                     # 对于医生建议等长文本
                     if col == 'doctor_advice':
                         samples = df[col].dropna().head(20).tolist()
                         if samples:
-                            cat_summary.append(f"- **{translate_column(col)}示例**:")
+                            cat_summary.append(f"- {translate_column(col)}示例:")
                             for i, advice in enumerate(samples, 1):
                                 cat_summary.append(f"  {i}. {advice[:30]}{'...' if len(advice) > 30 else ''}")
                     else:
-                        cat_summary.append(f"- **{translate_column(col)}**: {len(unique_vals)}种分类")
+                        cat_summary.append(f"- {translate_column(col)}: {len(unique_vals)}种分类")
         
         if cat_summary:
-            summary += "\n\n**分类数据统计**:\n" + "\n".join(cat_summary)
+            summary += "\n\n分类数据统计:\n" + "\n".join(cat_summary)
         
         return summary
     
     except Exception as e:
         error_msg = f"生成摘要时出错: {str(e)}"
         print(error_msg)
-        return f"## 核心分析结果\n\n- **{error_msg}**"
+        return f"## 核心分析结果\n\n- {error_msg}"
 
 def _generate_metrics_summary(df: pd.DataFrame) -> str:
     """处理指标记录表的专用摘要"""
@@ -239,7 +239,7 @@ def _generate_metrics_summary(df: pd.DataFrame) -> str:
         else:
             stats = f"最新值: {latest['metric_value']}{unit}"
             
-        summary += f"- **{translate_column(metric)}**: {stats}\n"
+        summary += f"- {translate_column(metric)}: {stats}\n"
     
     return summary
 def safe_translate_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:

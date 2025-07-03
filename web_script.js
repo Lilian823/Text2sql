@@ -183,7 +183,47 @@ function handleResponse(data) {
         document.getElementById('visualizationContainer').style.display = 'block';
         showChartImages(data.chart_urls);
     }
+    // 新增：处理表格数据
+    if (data.table_data && data.table_data.columns && data.table_data.rows && data.table_data.columns.length > 0) {
+        showTableData(data.table_data.columns, data.table_data.rows);
+    } else {
+        hideTableData();
+    }
 }
+
+// 新增：渲染表格数据
+function showTableData(columns, rows) {
+    let tableHtml = '<table class="table table-bordered table-sm" style="margin-top:10px;"><thead><tr>';
+    columns.forEach(col => {
+        tableHtml += `<th>${col}</th>`;
+    });
+    tableHtml += '</tr></thead><tbody>';
+    rows.forEach(row => {
+        tableHtml += '<tr>';
+        columns.forEach(col => {
+            tableHtml += `<td>${row[col] !== undefined ? row[col] : ''}</td>`;
+        });
+        tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody></table>';
+    let tableInner = document.getElementById('tablePreviewInner');
+    let tableContainer = document.getElementById('tablePreviewContainer');
+    if (tableInner && tableContainer) {
+        tableInner.innerHTML = tableHtml;
+        tableContainer.style.display = 'block';
+    }
+}
+
+// 新增：隐藏表格数据
+function hideTableData() {
+    const tableContainer = document.getElementById('tablePreviewContainer');
+    const tableInner = document.getElementById('tablePreviewInner');
+    if (tableContainer && tableInner) {
+        tableContainer.style.display = 'none';
+        tableInner.innerHTML = '';
+    }
+}
+
 
 // 新增：红色系统消息框
 function showErrorSystemMessage(content) {

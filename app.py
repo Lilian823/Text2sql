@@ -50,7 +50,7 @@ def run_sql_processor_and_collect_message(sql_file_path):
     if isinstance(generated_sql, str) and generated_sql.strip().startswith("生成错误"):
         error_msg = f"加载SQL查询: {generated_sql}"
         print(error_msg, file=sys.stderr)
-        return '', '', {}, error_msg
+        return '', '', {}, error_msg, []
 
     processor = SQLProcessor(sql_file_path)
     result = processor.process()
@@ -58,12 +58,12 @@ def run_sql_processor_and_collect_message(sql_file_path):
         messages.append(f"处理失败: {result['message']}")
         if 'sql_error' in result:
             print(f"SQL执行错误: {result['sql_error']}", file=sys.stderr)
-        return '', '\n'.join(messages), {}, result['message']
+        return '', '\n'.join(messages), {}, result['message'], []
     messages.append("医疗数据分析摘要:")
     messages.append(str(result['summary']))
     chart_urls = {}
     if processor.charts:
-        messages.append("生成的数据可视化图表:")
+        messages.append("\n已生成相应的数据可视化图表\n")
         output_dir = Path(__file__).parent / "Text2SqlwithContext" / "integration" / "output"
         os.makedirs(output_dir, exist_ok=True)
         for chart_type, fig in processor.charts.items():
@@ -74,17 +74,22 @@ def run_sql_processor_and_collect_message(sql_file_path):
                 plt.close()
                 chart_urls[chart_type] = f"/api/chart/{chart_type}_chart.png"
     else:
-        messages.append("未生成任何图表")
+        messages.append("\n未生成任何图表\n")
     
-    messages.append("数据预览 (前10行):")
-    
+    messages.append("已生成数据预览 (前10行)")
+    table_data = []
     if result['dataframe']:
         preview_df = pd.DataFrame(result['dataframe'])
-        messages.append(preview_df.to_string(index=False))
+        # 只取前10行
+        preview_df = preview_df.head(10)
+        # 转为dict列表
+        table_data = preview_df.to_dict(orient='records')
+        table_columns = list(preview_df.columns)
     else:
         messages.append("无数据可显示")
+        table_columns = []
     messages.append("\n分析完成!")
-    return result.get('generated_sql', ''), '\n'.join(messages), chart_urls, ''
+    return result.get('generated_sql', ''), '\n'.join(messages), chart_urls, '', {'columns': table_columns, 'rows': table_data}
 
 @app.route('/api/query', methods=['POST'])
 def api_query():
@@ -116,7 +121,7 @@ def api_query():
     results = {"generated_sql": sql}
     write_json(results, str(sql_output_path))
     try:
-        sql, message, chart_urls, error = run_sql_processor_and_collect_message(str(sql_output_path))
+        sql, message, chart_urls, error, table_data = run_sql_processor_and_collect_message(str(sql_output_path))
         if error and error.startswith("加载SQL查询: 生成错误"):
             return jsonify({
                 "sql": "",
@@ -124,7 +129,8 @@ def api_query():
                 "message": "",
                 "conversation_id": session_id,
                 "error": error,
-                "chart_urls": {}
+                "chart_urls": {},
+                "table_data": {"columns": [], "rows": []}
             })
         return jsonify({
             "sql": sql,
@@ -132,7 +138,8 @@ def api_query():
             "message": message,
             "conversation_id": session_id,
             "error": error,
-            "chart_urls": chart_urls
+            "chart_urls": chart_urls,
+            "table_data": table_data
         })
     except Exception as e:
         error_msg = str(e)
@@ -142,7 +149,8 @@ def api_query():
             "message": "",
             "conversation_id": session_id,
             "error": error_msg,
-            "chart_urls": {}
+            "chart_urls": {},
+            "table_data": {"columns": [], "rows": []}
         })
 
 @app.route('/api/connect_db', methods=['POST'])

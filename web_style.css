@@ -158,8 +158,8 @@ body {
 }
 
 .table th {
-    background: var(--secondary);
-    color: var(--primary);
+    background:#e6f4ff; /* 你想要的表头背景色，例如深蓝色 */
+    color: var(--primary);         /* 你想要的表头字体颜色，例如白色 */
 }
 
 .table-striped>tbody>tr:nth-of-type(odd) {
@@ -289,7 +289,54 @@ body {
     color: inherit !important;
 }
 
+.table-preview-container {
+    background: var(--surface);
+    color: var(--primary);
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 15px;
+    margin-bottom: 0;
+    box-shadow: var(--shadow);
+    /* 保证与.visualization-container一致 */
+    display: none;
+}
 
+.table-preview-container h5,
+.visualization-container h5 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.table-preview-container .fa-table {
+    color: var(--primary);
+    margin-right: 0.5em;
+}
+
+.table-preview-container .table-container {
+    background: none;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+}
+
+#tablePreviewInner {
+    width: 100%;
+    overflow-x: auto;
+}
+
+#downloadChartBtn {
+    background: #28a745;   /* 绿色背景，可换成你喜欢的颜色 */
+    color: #fff;           /* 白色字体 */
+    border: none;
+}
+#downloadChart:hover {
+    background: #218838;   /* 鼠标悬停时的颜色 */
+    color: #fff;
+}
 
 @media (max-width: 768px) {
     .chat-container {

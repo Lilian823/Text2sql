@@ -1,3 +1,3 @@
 {
-  "generated_sql": "SELECT checkup_date, metric_value AS systolic_blood_pressure, unit \nFROM patient_metrics \nWHERE patient_id = 'P10001' AND metric_name = '收缩压' \nORDER BY checkup_date ASC;"
+  "generated_sql": "SELECT COUNT(DISTINCT patient_id) AS abnormal_glucose_count\nFROM medical_checkup\nWHERE fasting_glucose > 6.1 OR hba1c > 6.5;"
 }
