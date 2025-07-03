@@ -12,6 +12,13 @@ def plot_bar_chart(df, x_column, y_columns,xlabel=None,ylabel=None,title=None, f
     # 输入验证
     if df is None or df.empty or not isinstance(df, pd.DataFrame):
         return None
+
+    # 检查姓名列是否存在，若存在则强制设为X轴
+    name_columns = ['patient_name', 'name', '姓名']  # 可能的姓名列名
+    for col in name_columns:
+        if col in df.columns and col != x_column:
+            x_column = col  # 优先使用姓名列
+            break
     
     # 排除无效列
     valid_y = [col for col in y_columns if col not in ['patient_name', 'patient_id']]
