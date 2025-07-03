@@ -82,27 +82,32 @@ class SQLProcessor:
             self.charts = {}
             return self.charts
 
-        columns = self.df.columns.tolist()
+        # 初始化charts字典
         self.charts = {}
+        columns = self.df.columns.tolist()
 
-        # 1. 处理 patient_metrics 表的折线图
-        if {'metric_name', 'metric_value', 'checkup_date'}.issubset(columns):
-            # 按指标分组绘制
-            metrics = self.df['metric_name'].unique()
-            for metric in metrics[:3]:  # 最多绘制3个指标的图表
-                metric_df = self.df[self.df['metric_name'] == metric].sort_values('checkup_date')
-                if len(metric_df) > 1:  # 只有多于1个数据点时才绘制折线图
-                    line_chart = plot_line_chart(
-                        metric_df,
-                        'checkup_date',
-                        ['metric_value'],
-                        title=f"{translate_column(metric)}趋势变化"
-                    )
-                    if line_chart:
-                        self.charts[f'line_{metric}'] = line_chart
-            return self.charts
+        # 折线图处理
+        line_data = self.df.rename(columns={
+            '检查日期': 'date',
+            '指标值': 'value',
+            '单位': 'unit'
+        })
+    
+        if {'date', 'value'}.issubset(line_data.columns):
+            metric_name = "收缩压"  # 可从SQL解析或使用默认值
+            unit = line_data['unit'].iloc[0] if 'unit' in line_data.columns else ''
+            title = f"{metric_name}趋势分析" + (f' ({unit})' if unit else '')
+        
+            fig = plot_line_chart(
+                line_data.sort_values('date'),
+                x_column='date',
+                y_columns=['value'],
+                title=title
+            )
+            if fig:
+                self.charts['line_blood_pressure'] = fig
 
-        # 2. 处理 patients 表的饼图
+        # 饼图
         if {'gender', 'count'}.issubset(columns):
             pie_chart = plot_pie_chart(
                 self.df, 
@@ -111,28 +116,23 @@ class SQLProcessor:
                 title="性别分布比例"
             )
             if pie_chart:
-                self.charts['pie'] = pie_chart
-            return self.charts
+                self.charts['pie'] = pie_chart 
 
-        # 3. 处理 medical_checkup 表的图表
+        # 柱状图
         # x轴候选（优先级：姓名 > 性别 > 其他分类列）
         x_candidates = [
             col for col in columns 
             if col in ['patient_name', 'name', 'gender', '性别']
-            or (
-                not pd.api.types.is_numeric_dtype(self.df[col]) 
-                and 2 <= self.df[col].nunique() <= 15
-            )
+            or (not pd.api.types.is_numeric_dtype(self.df[col]) 
+                and 2 <= self.df[col].nunique() <= 15)
         ]
     
-        # y轴候选（数值型列）
         y_candidates = [
             col for col in columns 
             if pd.api.types.is_numeric_dtype(self.df[col])
             and col not in ['patient_id', 'count', 'id']
         ]
 
-        # 生成柱状图
         if x_candidates and y_candidates and len(self.df) <= 20:
             x_col = x_candidates[0]
             y_col = y_candidates[0]
@@ -148,20 +148,7 @@ class SQLProcessor:
             if bar_chart:
                 self.charts['bar'] = bar_chart
 
-        # 生成折线图（时间序列）
-        if 'checkup_date' in columns and pd.api.types.is_datetime64_any_dtype(self.df['checkup_date']):
-            num_cols = [col for col in y_candidates if col != 'checkup_date']
-            if num_cols and len(self.df) > 1:  # 只有多于1个数据点时才绘制折线图
-                line_chart = plot_line_chart(
-                    self.df.sort_values('checkup_date'),
-                    'checkup_date',
-                    num_cols[:2],
-                    title="时间趋势分析"
-                )
-                if line_chart:
-                    self.charts['line'] = line_chart
-
-        return self.charts
+        return self.charts  # 统一返回
     
     def process(self):
         sql_query = self.load_sql()
