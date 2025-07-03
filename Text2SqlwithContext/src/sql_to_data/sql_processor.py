@@ -124,6 +124,16 @@ class SQLProcessor:
             )
             if fig:
                 self.charts['line'] = fig
+        # 饼图 - 添加饼图生成逻辑
+        if {'gender', 'count'}.issubset(columns):
+            pie_chart = plot_pie_chart(
+                self.df, 
+                'gender', 
+                values='count',
+                title="性别分布比例"
+            )
+            if pie_chart:
+                self.charts['pie'] = pie_chart
 
         # 柱状图
         # x轴候选（优先级：姓名 > 性别 > 其他分类列）
