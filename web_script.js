@@ -78,11 +78,13 @@ document.querySelectorAll('#chartTypeToggle [data-chart]').forEach(btn => {
 // 后端图片展示逻辑
 function showChartImages(chartUrls) {
     const types = ['bar', 'pie', 'line'];
+    const now = Date.now(); // 当前时间戳
     types.forEach(type => {
         const img = document.getElementById(type+'ChartImg');
         const none = document.getElementById(type+'ChartNone');
         if (chartUrls && chartUrls[type]) {
-            img.src = chartUrls[type];
+            // 加时间戳防止缓存
+            img.src = chartUrls[type] + '?t=' + now;
             img.style.display = 'block';
             none.style.display = 'none';
         } else {

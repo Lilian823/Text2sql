@@ -76,7 +76,7 @@ def run_sql_processor_and_collect_message(sql_file_path):
     else:
         messages.append("\n未生成任何图表\n")
     
-    messages.append("已生成数据预览 (前10行)")
+    messages.append("已生成数据预览 ")
     table_data = []
     if result['dataframe']:
         preview_df = pd.DataFrame(result['dataframe'])
