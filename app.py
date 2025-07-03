@@ -50,28 +50,32 @@ def get_project_root():
 
 def run_sql_processor_and_collect_message(sql_file_path):
     messages = []
-    messages.append("="*80)
     messages.append("开始执行SQL并分析结果...")
-    messages.append("="*80)
+
+    # 先读取 SQL 文件内容，判断是否为“生成错误”开头
+    import json
+    with open(sql_file_path, "r", encoding="utf-8") as f:
+        sql_json = json.load(f)
+    generated_sql = sql_json.get("generated_sql", "")
+    if isinstance(generated_sql, str) and generated_sql.strip().startswith("生成错误"):
+        # 只返回“加载SQL查询: ...”给前端
+        error_msg = f"加载SQL查询: {generated_sql}"
+        print(error_msg, file=sys.stderr)  # 终端输出
+        return '', '', {}, error_msg
+
+    # 只有不是“生成错误”才执行 SQLProcessor
     processor = SQLProcessor(sql_file_path)
     result = processor.process()
     if result['status'] == 'error':
-        # 增加详细错误信息到 messages
         messages.append(f"处理失败: {result['message']}")
-        # 如果有 SQL 错误详情，追加显示
         if 'sql_error' in result:
-            messages.append(f"SQL执行错误: {result['sql_error']}")
-        # 返回所有消息内容
+            print(f"SQL执行错误: {result['sql_error']}", file=sys.stderr)
         return '', '\n'.join(messages), {}, result['message']
-    messages.append("="*80)
     messages.append("医疗数据分析摘要:")
-    messages.append("="*80)
     messages.append(str(result['summary']))
     chart_urls = {}
     if processor.charts:
-        messages.append("="*80)
         messages.append("生成的数据可视化图表:")
-        messages.append("="*80)
         # 用绝对路径创建目录（确保在Text2SqlwithContext/integration/output）
         output_dir = Path(__file__).parent / "Text2SqlwithContext" / "integration" / "output"
         os.makedirs(output_dir, exist_ok=True)
@@ -84,9 +88,9 @@ def run_sql_processor_and_collect_message(sql_file_path):
                 chart_urls[chart_type] = f"/api/chart/{chart_type}_chart.png"
     else:
         messages.append("未生成任何图表")
-    messages.append("="*80)
+    
     messages.append("数据预览 (前10行):")
-    messages.append("="*80)
+    
     if result['dataframe']:
         preview_df = pd.DataFrame(result['dataframe'])
         messages.append(preview_df.to_string(index=False))
@@ -128,16 +132,38 @@ def api_query():
     results = {"generated_sql": sql}
     write_json(results, str(sql_output_path))
     # 执行SQL并收集所有文字信息和图表
-    sql, message, chart_urls, error = run_sql_processor_and_collect_message(str(sql_output_path))
-    return jsonify({
-        "sql": sql,
-        "result": [],
-        "message": message,
-        "conversation_id": session_id,
-        "error": error,
-        "chart_urls": chart_urls
-    })
-
+    try:
+        sql, message, chart_urls, error = run_sql_processor_and_collect_message(str(sql_output_path))
+        # 如果 error 是“加载SQL查询: 生成错误...”则只返回该中文错误
+        if error and error.startswith("加载SQL查询: 生成错误"):
+            return jsonify({
+                "sql": "",
+                "result": [],
+                "message": "",
+                "conversation_id": session_id,
+                "error": error,
+                "chart_urls": {}
+            })
+        return jsonify({
+            "sql": sql,
+            "result": [],
+            "message": message,
+            "conversation_id": session_id,
+            "error": error,
+            "chart_urls": chart_urls
+        })
+    except Exception as e:
+        # 新增：将异常内容格式化为“生成错误”并返回
+        error_msg = str(e)
+        # 保证返回标准JSON
+        return jsonify({
+            "sql": "",
+            "result": [],
+            "message": "",
+            "conversation_id": session_id,
+            "error": error_msg,
+            "chart_urls": {}
+        })
 
 # 新的连接数据库逻辑：查找 seed 目录下的 sql 文件
 @app.route('/api/connect_db', methods=['POST'])

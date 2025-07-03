@@ -4,21 +4,131 @@ let config = {
     connectUrl: 'http://localhost:5000/api/connect_db'
 };
 let conversationId = null;
+
 // 连接数据库按钮逻辑
-async function connectDatabase() {
-    try {
-        const response = await axios.post(config.connectUrl);
-        if (response.data.success) {
-            addMessage('数据库连接成功: ' + response.data.message, 'system');
-            // 你可以在这里设置连接状态为已连接
+function handleConnectDbBtnClick() {
+    fetch('/api/connect_db', {method: 'POST'})
+        .then(resp => resp.json())
+        .then(data => {
+            const chatMessages = document.getElementById('chatMessages');
+            const tipDiv = document.createElement('div');
+            tipDiv.className = 'message system-message';
+            if (data.success) {
+                document.getElementById('dbStatusDot').classList.remove('bg-danger');
+                document.getElementById('dbStatusDot').classList.add('bg-success');
+                // 状态栏只显示简洁信息
+                document.getElementById('dbStatusText').textContent = data.message || '数据库连接成功';
+                // 消息框显示详细信息
+                tipDiv.style.background = '#eaffea';
+                tipDiv.style.color = '#218838';
+                tipDiv.innerHTML = '<strong>' + (data.message || '数据库连接成功') + '</strong>';
+                chatMessages.appendChild(tipDiv);
+                // 新增：导入成功后发送提示消息
+                const guideDiv = document.createElement('div');
+                guideDiv.className = 'message system-message';
+                guideDiv.innerHTML = `
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-robot me-2 text-success"></i>
+                        <strong>数据库助手</strong>
+                    </div>
+                    <p>我已经收到您的数据库文件啦！你可以通过下方的输入框开始向我提问啦~</p>
+                `;
+                chatMessages.appendChild(guideDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } else {
+                document.getElementById('dbStatusDot').classList.remove('bg-success');
+                document.getElementById('dbStatusDot').classList.add('bg-danger');
+                // 状态栏只显示简洁信息
+                document.getElementById('dbStatusText').textContent = data.error || '数据库导入失败';
+                // 消息框显示详细错误（含detail）
+                tipDiv.style.background = '#ffeaea';
+                tipDiv.style.color = '#b94a48';
+                let detailMsg = '';
+                if (data.detail) {
+                    detailMsg = '<br><span style="font-size:0.95em;color:#b94a48;">详细信息：' + data.detail + '</span>';
+                }
+                tipDiv.innerHTML = '<strong>' + (data.error || '数据库导入失败') + '</strong>' + detailMsg;
+                chatMessages.appendChild(tipDiv);
+            }
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        })
+        .catch(() => alert('连接数据库失败'));
+}
+document.getElementById('connectDbBtn').addEventListener('click', handleConnectDbBtnClick);
+// 聊天欢迎区“连接数据库”按钮联动
+setTimeout(function() {
+    const btn = document.getElementById('welcomeConnectBtn');
+    if (btn) {
+        btn.addEventListener('click', handleConnectDbBtnClick);
+    }
+}, 100);
+// 图表类型切换逻辑
+const chartTypes = ['bar', 'pie', 'line'];
+document.querySelectorAll('#chartTypeToggle [data-chart]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        chartTypes.forEach(type => {
+            document.getElementById(type+'ChartBox').style.display = 'none';
+            document.querySelector(`[data-chart="${type}"]`).classList.remove('active');
+        });
+        const type = this.getAttribute('data-chart');
+        document.getElementById(type+'ChartBox').style.display = 'flex';
+        this.classList.add('active');
+    });
+});
+// 后端图片展示逻辑
+function showChartImages(chartUrls) {
+    const types = ['bar', 'pie', 'line'];
+    types.forEach(type => {
+        const img = document.getElementById(type+'ChartImg');
+        const none = document.getElementById(type+'ChartNone');
+        if (chartUrls && chartUrls[type]) {
+            img.src = chartUrls[type];
+            img.style.display = 'block';
+            none.style.display = 'none';
         } else {
-            addMessage('数据库连接失败: ' + (response.data.error || '未知错误'), 'system');
-            // 你可以在这里设置连接状态为未连接
+            img.style.display = 'none';
+            none.style.display = 'block';
         }
-    } catch (error) {
-        addMessage('数据库连接请求失败', 'system');
+    });
+    // 默认切换到有图的类型，否则切到bar
+    let shown = false;
+    types.forEach(type => {
+        if (chartUrls && chartUrls[type]) {
+            document.getElementById(type+'ChartBox').style.display = 'flex';
+            document.querySelector(`[data-chart="${type}"]`).classList.add('active');
+            shown = true;
+        } else {
+            document.getElementById(type+'ChartBox').style.display = 'none';
+            document.querySelector(`[data-chart="${type}"]`).classList.remove('active');
+        }
+    });
+    if (!shown) {
+        document.getElementById('barChartBox').style.display = 'flex';
+        document.querySelector('[data-chart="bar"]').classList.add('active');
     }
 }
+
+// 下载当前图表图片
+function getCurrentChartType() {
+    const activeBtn = document.querySelector('#chartTypeToggle .active[data-chart]');
+    return activeBtn ? activeBtn.getAttribute('data-chart') : 'bar';
+}
+document.getElementById('downloadChartBtn').addEventListener('click', function() {
+    const type = getCurrentChartType();
+    const img = document.getElementById(type + 'ChartImg');
+    if (img && img.src && img.style.display !== 'none') {
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = type + '_chart.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } else {
+        alert('暂无可下载的图表图片');
+    }
+});
+
+
 
 // 发送消息到后端
 async function sendMessage() {
@@ -40,23 +150,57 @@ async function sendMessage() {
         }
     } catch (error) {
         removeTypingIndicator();
-        addMessage('请求处理失败', 'system');
+        // 优先显示后端返回的 error 字段内容（如有），否则显示默认提示
+        let errMsg = '请求处理失败';
+        if (error.response && error.response.data) {
+            // 兼容后端返回字符串或对象
+            if (typeof error.response.data === 'string') {
+                showErrorSystemMessage(error.response.data);
+            } else if (error.response.data.error) {
+                showErrorSystemMessage(error.response.data.error);
+            } else {
+                showErrorSystemMessage(errMsg);
+            }
+        } else {
+            showErrorSystemMessage(errMsg);
+        }
     }
 }
 
 function handleResponse(data) {
     if (data.error) {
-        addMessage(`处理请求时出错: ${data.error}`, 'system');
+        // 只显示后端返回的 error 字段内容，并用红色消息框
+        showErrorSystemMessage(data.error);
         return;
     }
     if (data.sql) addSqlMessage(data.sql);
-    if (data.message) addMessage(data.message, 'system');
+    // 只在没有 error 时才处理 message 字段
+    if (data.message) {
+        addMessage(data.message, 'system');
+    }
     // 新增：处理 chart_urls
     if (data.chart_urls) {
-        // 显示可视化区域
         document.getElementById('visualizationContainer').style.display = 'block';
         showChartImages(data.chart_urls);
     }
+}
+
+// 新增：红色系统消息框
+function showErrorSystemMessage(content) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message system-message';
+    messageDiv.style.background = '#ffeaea';
+    messageDiv.style.color = '#b94a48';
+    messageDiv.innerHTML = `
+        <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-exclamation-triangle me-2" style="color:#b94a48"></i>
+            <strong>系统提示</strong>
+        </div>
+        <p>${content}</p>
+    `;
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function showChartImage(url) {

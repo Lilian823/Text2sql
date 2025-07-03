@@ -34,7 +34,10 @@ def generate_sql_from_nl(query_data):
         output["metadata"] = result["metadata"]
     else:
         output["status"] = "error"
-        output["error"] = result["error"]
+        # 只返回中文print内容作为error
+        # 假设 result["error"] 里包含了终端print的中文内容
+        # 若不是，请确保llm_client返回的error字段就是print的中文内容
+        output["error"] = result["error"]  # 只保留中文错误信息
         output["metadata"] = result["metadata"]
     
     return output
