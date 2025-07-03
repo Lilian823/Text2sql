@@ -1,12 +1,14 @@
 import matplotlib.pyplot as plt # type: ignore
 import numpy as np
 import pandas as pd # type: ignore
-from Text2SqlwithContext.src.sql_to_data.data_processing import translate_column
+import matplotlib.dates as mdates
+from Text2SqlwithContext.src.sql_to_data.data_processing import translate_column, get_medical_unit
 
 # 设置中文字体
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
+# 柱状图函数保持不变（完全保留原始代码）
 def plot_bar_chart(df, x_column, y_columns,xlabel=None,ylabel=None,title=None, figsize=(10, 6)):
     """绘制柱状图，支持多个Y列"""
     # 输入验证
@@ -59,7 +61,8 @@ def plot_bar_chart(df, x_column, y_columns,xlabel=None,ylabel=None,title=None, f
         print(f"生成柱状图时出错: {str(e)}")
         return None
 
-def plot_line_chart(df, x_column, y_columns,title=None, figsize=(10, 6)):
+# 折线图函数修改（仅修改此部分）
+def plot_line_chart(df, x_column, y_columns, xlabel=None, ylabel=None, title=None, figsize=(10, 6)):
     """绘制折线图，支持多个Y列"""
     # 1. 输入验证增强
     if df is None or df.empty or not isinstance(df, pd.DataFrame):
@@ -82,44 +85,49 @@ def plot_line_chart(df, x_column, y_columns,title=None, figsize=(10, 6)):
         print(f"数据预处理失败: {str(e)}")
         return None
     
-    # 3. 动态单位处理（需确保get_medical_unit函数已定义）
-    units = {col: get_medical_unit(col) for col in valid_y}  # 示例: {'glucose': 'mmol/L'}
-    
-    # 4. 创建图形对象（支持多子图分开展示不同单位指标）
+    # 3. 创建图形对象
     fig = plt.figure(figsize=figsize)
+    
     try:
-        # 情况1：所有指标单位相同 → 单图展示
-        if len(set(units.values())) == 1:
-            ax = fig.add_subplot(111)
-            for y_col in valid_y:
-                ax.plot(df[x_column], df[y_col], 
-                       marker='o', 
-                       label=f"{translate_column(y_col)} ({units[y_col]})")
-            ax.set_ylabel(f"指标值 ({list(units.values())[0]})")
+        # 单指标处理
+        if len(valid_y) == 1:
+            y_col = valid_y[0]
+            unit = get_medical_unit(y_col)
+            translated_y = translate_column(y_col)
             
-        # 情况2：指标单位不同 → 多子图展示
+            plt.plot(df[x_column], df[y_col], marker='o')
+            plt.title(title if title else f"{translated_y}趋势分析")
+            plt.xlabel(xlabel if xlabel else translate_column(x_column))
+            plt.ylabel(ylabel if ylabel else f"{translated_y} ({unit})" if unit else translated_y)
+            
+            if pd.api.types.is_datetime64_any_dtype(df[x_column]):
+                plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+                plt.gcf().autofmt_xdate()
+        
+        # 多指标处理
         else:
             axes = [fig.add_subplot(len(valid_y), 1, i+1) for i in range(len(valid_y))]
+            
             for ax, y_col in zip(axes, valid_y):
-                ax.plot(df[x_column], df[y_col], 
-                       marker='o', 
-                       color='tab:blue',  # 统一颜色便于对比
-                       label=translate_column(y_col))
-                ax.set_ylabel(f"{translate_column(y_col)} ({units[y_col]})")
+                unit = get_medical_unit(y_col)
+                translated_y = translate_column(y_col)
+                
+                ax.plot(df[x_column], df[y_col], marker='o')
+                ax.set_ylabel(f"{translated_y} ({unit})" if unit else translated_y)
                 ax.grid(True)
-                ax.legend()
-        
-        # 5. 公共属性设置
-        plt.suptitle(title if title else "医疗指标趋势分析", fontsize=14)
-        plt.xlabel(translate_column(x_column))
-        
-        # 日期格式优化
-        if pd.api.types.is_datetime64_any_dtype(df[x_column]):
-            fig.autofmt_xdate(rotation=45)
-            plt.gca().xaxis.set_major_formatter(
-                mdates.DateFormatter('%Y-%m-%d'))  # 统一日期格式
+                
+                # 仅最后一张图显示x轴标签
+                if ax == axes[-1]:
+                    ax.set_xlabel(xlabel if xlabel else translate_column(x_column))
+                
+                if pd.api.types.is_datetime64_any_dtype(df[x_column]):
+                    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+            
+            plt.suptitle(title if title else "医疗指标趋势分析", fontsize=14)
         
         plt.tight_layout()
+        if len(valid_y) > 1:
+            plt.subplots_adjust(top=0.9)  # 为总标题留出空间
         return fig
         
     except Exception as e:
@@ -127,7 +135,8 @@ def plot_line_chart(df, x_column, y_columns,title=None, figsize=(10, 6)):
         print(f"绘图过程中出错: {str(e)}")
         return None
 
-def plot_pie_chart(df, column_name, figsize=(8, 8),title=None, values=None):
+# 饼图函数保持不变（完全保留原始代码）
+def plot_pie_chart(df, column_name, figsize=(8, 8), title=None, values=None):
     """绘制饼图，支持自定义值列（如count）"""
     if df is None or df.empty or not isinstance(df, pd.DataFrame):
         return None
