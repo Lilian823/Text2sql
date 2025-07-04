@@ -1,3 +1,3 @@
 {
-  "generated_sql": "SELECT \n    gender,\n    COUNT(*) AS count,\n    GROUP_CONCAT(name) AS name_list\nFROM \n    patients\nGROUP BY \n    gender;"
+  "generated_sql": "SELECT p.patient_id, p.name, pm.metric_value, pm.unit, pm.checkup_date \nFROM patients p\nJOIN patient_metrics pm ON p.patient_id = pm.patient_id\nWHERE p.address LIKE '%北京%' AND pm.metric_name = '收缩压'\nORDER BY pm.checkup_date DESC;"
 }

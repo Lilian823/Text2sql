@@ -78,6 +78,14 @@ def run_sql_processor_and_collect_message(sql_file_path):
     
     messages.append("已生成数据预览 ")
     table_data = []
+    # 字段名中英文映射
+    column_name_map = {
+        "abnormal_glucose_count": "异常血糖次数",
+        "patient_names": "患者姓名",
+        "count":"人数",
+        "percentage":"比例"
+        # 可以继续添加更多字段映射
+    }
     if result['dataframe']:
         preview_df = pd.DataFrame(result['dataframe'])
         # 只取前10行
@@ -85,11 +93,20 @@ def run_sql_processor_and_collect_message(sql_file_path):
         # 转为dict列表
         table_data = preview_df.to_dict(orient='records')
         table_columns = list(preview_df.columns)
+        # 字段名翻译
+        table_columns_cn = [column_name_map.get(col, col) for col in table_columns]
+        # rows字段的key也映射为中文
+        table_data_cn = [
+            {column_name_map.get(k, k): v for k, v in row.items()} for row in table_data
+        ]
     else:
         messages.append("无数据可显示")
         table_columns = []
+        table_columns_cn = []
+        table_data_cn = []
     messages.append("\n分析完成!")
-    return result.get('generated_sql', ''), '\n'.join(messages), chart_urls, '', {'columns': table_columns, 'rows': table_data}
+    # 返回中文列名和中文key的rows
+    return result.get('generated_sql', ''), '\n'.join(messages), chart_urls, '', {'columns': table_columns_cn, 'rows': table_data_cn}
 
 @app.route('/api/query', methods=['POST'])
 def api_query():
@@ -104,6 +121,7 @@ def api_query():
     try:
         with open(db_schema_path, "r", encoding="utf-8") as f:
             db_schema = f.read()
+        
     except Exception as e:
         return jsonify({"error": f"数据库结构文件读取失败: {e}", "sql": "", "result": [], "conversation_id": session_id})
     enhanced_query = context_manager.enhance_query(session_id, user_query)
@@ -132,6 +150,13 @@ def api_query():
                 "chart_urls": {},
                 "table_data": {"columns": [], "rows": []}
             })
+        # 加入上下文历史
+        context_manager.add_history(
+            session_id=session_id,
+            user_query=user_query,
+            generated_sql=sql,
+            result=table_data
+        )
         return jsonify({
             "sql": sql,
             "result": [],

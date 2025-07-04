@@ -35,10 +35,10 @@ def call_llm_model(natural_language_query, schema_info=None):
         response = openai.chat.completions.create(
             model=MODEL_NAME,
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
             ],
-            temperature=0.1  # 低温度以获得更确定性的结果
+            temperature=0.01  # 更低温度以获得更确定性的结果
         )
         
         sql_query = response.choices[0].message.content.strip()

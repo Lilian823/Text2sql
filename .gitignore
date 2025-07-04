@@ -1,5 +1,6 @@
 t2s_t5_small.py
 Text2SqlwithContext/.env
+results.json
 
 # 临时文件
 *.tmp
