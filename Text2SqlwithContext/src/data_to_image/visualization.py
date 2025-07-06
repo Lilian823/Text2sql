@@ -134,7 +134,7 @@ def plot_line_chart(df, x_column, y_columns, xlabel=None, ylabel=None, title=Non
         print(f"绘图过程中出错: {str(e)}")
         return None
 
-# 饼图函数保持不变（完全保留原始代码）
+# 饼图函数
 def plot_pie_chart(df, column_name, figsize=(8, 8), title=None, values=None):
     """绘制饼图，支持自定义值列（如count）"""
     if df is None or df.empty or not isinstance(df, pd.DataFrame):
